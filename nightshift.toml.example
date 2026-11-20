@@ -1,0 +1,57 @@
+# nightshift.toml.example
+# Copy this file to nightshift.toml and edit for your project.
+# Commit nightshift.toml (it contains no secrets — tokens come from env vars).
+
+[nightshift]
+
+# GitHub issue label that marks issues for overnight processing.
+label = "night-shift"
+
+# Maximum number of issues to process in a single nightly run.
+# Oldest issues (by creation date) are selected first.
+max_issues = 5
+
+# Hard time limit per issue, in minutes.  The agent process is killed if it
+# exceeds this limit and the issue is recorded as "timeout".
+max_minutes = 15
+
+# Maximum number of files the agent may change for a single issue.
+# Exceeding this triggers an "over_limit" abort (no push, no PR).
+max_files = 20
+
+# Maximum number of lines (insertions + deletions) the agent may change.
+max_lines = 500
+
+# Shell command to run after the agent finishes.  Must exit 0 for a PR to be
+# opened.  Run relative to the repo root.
+test_command = "pytest"
+
+# Prefix for branches created by Night Shift.  The full branch name will be
+# "{branch_prefix}{issue-number}-{slug}", e.g. "night-shift/42-fix-login-bug".
+branch_prefix = "night-shift/"
+
+# Set to true to skip all push, PR, and issue-comment operations.  Useful for
+# testing your configuration before the first real run.
+dry_run = false
+
+[diary]
+
+# Names assigned round-robin to ghost agents in the diary output.
+# Feel free to add your own spooky names.
+ghost_names = ["Casper", "Spook", "Wraith", "Phantom", "Specter"]
+
+# Directory where Ghost Diary HTML files are written.
+# Relative to the repo root.  Created automatically if absent.
+output_dir = ".nightshift/diary"
+
+# ----- Secrets (do NOT put these in this file) --------------------------------
+#
+# Night Shift never reads secrets from nightshift.toml.  Authentication for
+# GitHub is handled by the `gh` CLI — run `gh auth login` once and Night Shift
+# will use the stored credentials automatically.
+#
+# If you need to pass a token explicitly (e.g. in CI), set:
+#   GH_TOKEN=<your-token>  (read by the gh CLI automatically)
+#
+# No environment variable is read directly by Night Shift itself.
+# ------------------------------------------------------------------------------

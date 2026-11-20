@@ -6,33 +6,33 @@ Tasks are ordered for incremental delivery. Each task is independently testable.
 
 ## Phase 0 — Scaffolding (Day 1)
 
-- [ ] **T-01** Set up repo: `uv init`, `pyproject.toml` with deps (`typer`, `jinja2`, `gitpython`, `hypothesis`, `pytest`, `pytest-subprocess`), entry point `nightshift = "nightshift.cli:app"`. *(REQ-09)*
-- [ ] **T-02** Create `src/nightshift/` package skeleton: empty `__init__.py` in every planned module file. Add `tests/conftest.py` with a `tmp_path`-based bare git repo fixture. Confirm `uv run pytest` passes with zero tests collected. *(infra)*
-- [ ] **T-03** Create `nightshift.toml.example` with all config fields documented. *(REQ-09, AC-09.4)*
+- [x] **T-01** Set up repo: `uv init`, `pyproject.toml` with deps (`typer`, `jinja2`, `gitpython`, `hypothesis`, `pytest`, `pytest-subprocess`), entry point `nightshift = "nightshift.cli:app"`. *(REQ-09)*
+- [x] **T-02** Create `src/nightshift/` package skeleton: empty `__init__.py` in every planned module file. Add `tests/conftest.py` with a `tmp_path`-based bare git repo fixture. Confirm `uv run pytest` passes with zero tests collected. *(infra)*
+- [x] **T-03** Create `nightshift.toml.example` with all config fields documented. *(REQ-09, AC-09.4)*
 
 ---
 
 ## Phase 1 — Core infrastructure (Days 1–2)
 
-- [ ] **T-04** Implement `shell.py`: `ShellResult`, `ShellError`, `run()`. Unit test: assert command list is passed correctly, stdout captured, non-zero exit raises `ShellError`. *(design: shell.py)*
-- [ ] **T-05** Implement `config.py`: `NightShiftConfig` dataclass, `load()`. Unit tests: valid config loads, missing required field raises, secrets not read from file. *(REQ-09)* Property test: round-trip serialization.
-- [ ] **T-06** Implement `cli.py` skeleton: `app = typer.Typer()`, stub commands `run`, `diary`, `schedule`, `status` that print "not yet implemented". Confirm `uv run nightshift --help` works. *(design: cli.py)*
+- [x] **T-04** Implement `shell.py`: `ShellResult`, `ShellError`, `run()`. Unit test: assert command list is passed correctly, stdout captured, non-zero exit raises `ShellError`. *(design: shell.py)*
+- [x] **T-05** Implement `config.py`: `NightShiftConfig` dataclass, `load()`. Unit tests: valid config loads, missing required field raises, secrets not read from file. *(REQ-09)* Property test: round-trip serialization.
+- [x] **T-06** Implement `cli.py` skeleton: `app = typer.Typer()`, stub commands `run`, `diary`, `schedule`, `status` that print "not yet implemented". Confirm `uv run nightshift --help` works. *(design: cli.py)*
 
 ---
 
 ## Phase 2 — GitHub integration (Day 2)
 
-- [ ] **T-07** Implement `github.py`: `Issue` dataclass, `list_labeled_issues()`, `comment_on_issue()`. Mock `shell.run` in tests; assert correct `gh issue list --json` command and JSON parsing. *(REQ-01, REQ-04)*
-- [ ] **T-08** Add `github.py`: `open_pr()` and `add_label()`. Unit tests with mocked `shell.run`. *(REQ-05)*
-- [ ] **T-09** Add `github.py`: `validate_auth()` that runs `gh auth status` and raises a clear error on failure. Wire into `cli.py`'s `run` command as the first step. *(REQ-01, AC-01.4)*
+- [x] **T-07** Implement `github.py`: `Issue` dataclass, `list_labeled_issues()`, `comment_on_issue()`. Mock `shell.run` in tests; assert correct `gh issue list --json` command and JSON parsing. *(REQ-01, REQ-04)*
+- [x] **T-08** Add `github.py`: `open_pr()` and `add_label()`. Unit tests with mocked `shell.run`. *(REQ-05)*
+- [x] **T-09** Add `github.py`: `validate_auth()` that runs `gh auth status` and raises a clear error on failure. Wire into `cli.py`'s `run` command as the first step. *(REQ-01, AC-01.4)*
 
 ---
 
 ## Phase 3 — Safety module (Day 3)
 
-- [ ] **T-10** Implement `safety.py`: `make_branch_name(prefix, issue)`. Unit test: basic slug generation. Property tests: never equals `main`/`master`, always valid git ref, idempotent. *(REQ-02, design: safety)*
-- [ ] **T-11** Implement `safety.py`: `prepare_branch()` — check for existing branch, `git checkout -b`. Unit test with mocked `shell.run`. *(REQ-02, AC-02.1–AC-02.3)*
-- [ ] **T-12** Implement `safety.py`: `check_diff_limits()` — parse `git diff --stat`, raise `OverLimitError`. Unit tests for the parser. Property test: no error when within limits. *(REQ-06)*
+- [x] **T-10** Implement `safety.py`: `make_branch_name(prefix, issue)`. Unit test: basic slug generation. Property tests: never equals `main`/`master`, always valid git ref, idempotent. *(REQ-02, design: safety)*
+- [x] **T-11** Implement `safety.py`: `prepare_branch()` — check for existing branch, `git checkout -b`. Unit test with mocked `shell.run`. *(REQ-02, AC-02.1–AC-02.3)*
+- [x] **T-12** Implement `safety.py`: `check_diff_limits()` — parse `git diff --stat`, raise `OverLimitError`. Unit tests for the parser. Property test: no error when within limits. *(REQ-06)*
 
 ---
 

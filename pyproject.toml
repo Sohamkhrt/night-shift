@@ -1,0 +1,29 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "night-shift"
+version = "0.1.0"
+description = "Autonomous overnight GitHub issue agent with a spooky Ghost Diary"
+readme = "README.md"
+license = { file = "LICENSE" }
+requires-python = ">=3.11"
+dependencies = [
+    "typer>=0.12.0",
+    "jinja2>=3.1.0",
+    "gitpython>=3.1.0",
+]
+
+[project.scripts]
+nightshift = "nightshift.cli:app"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/nightshift"]
+
+[dependency-groups]
+dev = [
+    "pytest>=8.0.0",
+    "hypothesis>=6.100.0",
+    "pytest-subprocess>=1.5.0",
+]

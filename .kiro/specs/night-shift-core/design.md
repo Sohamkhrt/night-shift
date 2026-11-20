@@ -229,3 +229,21 @@ class RunLog:
 
 **`test_config.py`**
 - Round-trip: any valid `NightShiftConfig` serialized to TOML and re-parsed produces the same config.
+
+
+
+---
+
+## Decisions
+
+Choices made during Phase 0–3 implementation where the design was silent or ambiguous.
+
+| # | Location | Decision |
+|---|---|---|
+| D-01 | `config.py` — required fields | Only `test_command` is required; every other field has a sensible default. The design doc did not specify which fields are required; this is the most user-friendly interpretation. |
+| D-02 | `config.py` — round-trip TOML serialization | A local `config_to_toml()` helper in `test_config.py` serializes a `NightShiftConfig` back to TOML for the Hypothesis round-trip test. This avoids a `tomli-w` dev dependency. |
+| D-03 | `safety.py` — `prepare_branch` signature | The design shows `prepare_branch(issue, config)` but that couples the function to two separate concerns. The implementation takes only `branch_name: str` (the output of `make_branch_name`), keeping it focused and easier to unit-test. The caller (Phase 4 runner) is responsible for composing the two. |
+| D-04 | `safety.py` — existing branch detection | The design said "check if branch exists" without specifying how. `git branch --list <name>` is used because it is portable across all git versions and platforms without extra parsing. |
+| D-05 | `safety.py` — `check_diff_limits` diff target | `git diff --stat HEAD` is used (working tree vs HEAD). This captures all changes since the last commit, including untracked staged or unstaged changes from the agent. An alternative (`--cached`) would miss unstaged files; the design explicitly said "after agent runs, before tests". |
+| D-06 | `github.py` — `open_pr` push responsibility | `open_pr()` performs both `git push origin <branch>` and `gh pr create`. The design described `runner.py` calling push + PR separately, but consolidating them in `open_pr` reduces error-prone sequencing at call sites. |
+| D-07 | `shell.py` — `input` parameter name shadows builtin | The parameter is named `input` to match `subprocess.run`'s API for familiarity, accepting the shadow of the builtin. A `# noqa` comment would suppress any linter warning. |

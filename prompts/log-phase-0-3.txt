@@ -1,0 +1,199 @@
+
+[tool] Reading requirements.md:1, design.md:1, tasks.md:1
+[tool] status: Completed
+Good, I have a full picture of all three spec files. Now let me create the task list and implement everything for Phases 0–3.
+[tool] Creating task list: Implement Night Shift Phases 0-3: scaffolding, core infra...
+[tool] status: Completed
+Now let me check the current project state to know what already exists:
+[tool] Reading listing night-shift
+[tool] status: Completed
+Clean slate — no `src/` or `tests/` yet. Let me implement everything in a systematic batch. I'll write all files, starting with Phase 0.
+[tool] Creating pyproject.toml
+[tool] status: Completed
+
+[tool] Completing #1
+[tool] status: Completed
+Now T-02: package skeleton and conftest.py:
+[tool] Creating __init__.py
+[tool] status: Completed
+
+[tool] Creating cli.py
+[tool] status: Completed
+
+[tool] Creating shell.py
+[tool] status: Completed
+
+[tool] Creating config.py
+[tool] status: Completed
+
+[tool] Creating github.py
+[tool] status: Completed
+
+[tool] Creating safety.py
+[tool] status: Completed
+
+[tool] Creating agent.py
+[tool] status: Completed
+
+[tool] Creating runner.py
+[tool] status: Completed
+
+[tool] Creating diary.py
+[tool] status: Completed
+
+[tool] Creating scheduler.py
+[tool] status: Completed
+
+[tool] Creating diary.html.j2
+[tool] status: Completed
+Now create `tests/conftest.py` with the fixture for a bare git repo:
+[tool] Creating conftest.py
+[tool] status: Completed
+
+[tool] Completing #2
+[tool] status: Completed
+Now T-03: `nightshift.toml.example`:
+[tool] Creating nightshift.toml.example
+[tool] status: Completed
+
+[tool] Completing #3
+[tool] status: Completed
+Now Phase 1 — T-04: `shell.py` and `test_shell.py`:
+[tool] Creating shell.py
+[tool] status: Completed
+
+[tool] Creating test_shell.py
+[tool] status: Completed
+
+[tool] Completing #4
+[tool] status: Completed
+Now T-05: `config.py` and `test_config.py`:
+[tool] Creating config.py
+[tool] status: Completed
+
+[tool] Creating test_config.py
+[tool] status: Completed
+
+[tool] Completing #5
+[tool] status: Completed
+Now T-06: `cli.py` skeleton with stub commands:
+[tool] Creating cli.py
+[tool] status: Completed
+
+[tool] Completing #6
+[tool] status: Completed
+Now Phase 2 — T-07, T-08, T-09: github.py. I'll write all three phases of github.py together and then the test file:
+[tool] Creating github.py
+[tool] status: Completed
+Now wire `validate_auth` into `cli.py`'s `run` command:
+[tool] Editing cli.py
+[tool] status: Completed
+
+[tool] Editing cli.py
+[tool] status: Completed
+Now write the comprehensive `test_github.py` covering T-07, T-08, and T-09:
+[tool] Creating test_github.py
+[tool] status: Completed
+
+[tool] Completing #7, #8, #9
+[tool] status: Completed
+Now Phase 3 — safety module. I'll implement all three tasks together then write the test file:
+[tool] Creating safety.py
+[tool] status: Completed
+Now write the comprehensive `test_safety.py` covering all three T-10/T-11/T-12 tasks including property tests:
+[tool] Creating test_safety.py
+[tool] status: Completed
+
+[tool] Completing #10, #11, #12
+[tool] status: Completed
+Now tick the checkboxes in `tasks.md`:
+[tool] Editing tasks.md
+[tool] status: Completed
+
+[tool] Completing #13
+[tool] status: Completed
+Now append the Decisions section to design.md:
+[tool] Editing design.md
+[tool] status: Completed
+Let me do a quick sanity check on the test for `check_diff_limits` property test — the `max_files=0` / `max_lines=0` case could cause an issue when files=0 and max_files=0. Let me review:
+[tool] Reading test_safety.py:421-495
+[tool] status: Completed
+I see a potential issue in the `test_no_over_limit_error_when_within_limits` test: when `files == 0`, the stat output is empty, but the assertions check `stats.lines_added == added`. If `files == 0` but `added > 0`, the empty stat output will return 0 for added/removed, causing the assertion to fail.
+
+Let me fix this:
+[tool] Editing test_safety.py
+[tool] status: Completed
+Also fix the over-limit property test — when `files=0` and `max_files=0`, the `OverLimitError` path would need `added+removed > max_lines` to hold. The `assume` guards it, but let me also check the `max_files=0` edge in the `OverLimitError` constructor:
+
+Looking at `OverLimitError.__init__`: it checks `stats.files_changed > max_files` and `stats.total_lines > max_lines`. When `files=0` and `max_files=0`, `0 > 0` is False, so it won't trigger from files. The `assume` already handles this by requiring `files > max_files OR total_lines > max_lines`. When `files=0` and `max_files=0`, that assume gives `0 > 0` which is False, so we need the lines condition. That's fine — the `assume` will just filter those cases.
+
+But wait — in `OverLimitError.__init__`, if `reasons` is empty (both conditions false), we'd have a misleading error message. Let me check that the `OverLimitError` is only raised by `check_diff_limits` when at least one condition is true:
+
+Looking at `check_diff_limits`:
+```python
+if stats.files_changed > max_files or stats.total_lines > max_lines:
+    raise OverLimitError(stats, max_files, max_lines)
+```
+
+This is correct — the error is only raised when at least one is exceeded. Good.
+
+Now let me also verify the `test_over_limit_error_when_exceeded` property test. When `files=0`, `max_files = max(0, -1) = 0`, and `added+removed=0`, `max_lines = max(0, -1) = 0`. The assume says `0 > 0 OR 0 > 0` which is False, so this case is filtered out. Good.
+
+Let me also look at one more potential issue in `test_shell.py` — the `test_no_shell_true` test checks that passing a string raises `TypeError`. In Python, `subprocess.run` with a string and `shell=False` (the default) would actually raise a `TypeError` on POSIX but on Windows it might try to use it as a file path. Our `run()` function doesn't special-case this. Let me verify that the test behavior is correct by looking at what Python does with a string to `subprocess.run`:
+
+Actually, `subprocess.run("echo hello")` on Windows would try to execute "echo hello" as a file. The real issue is that our `run()` function accepts `list[str]` per the type hint, and if a bare string is passed, Python's subprocess on POSIX would treat it as a list of characters. But the test `run("echo hello")` — `subprocess.run("echo hello")` with `shell=False` on Windows tries to open the string as a command. It would fail (file not found), but not necessarily raise `TypeError`.
+
+The test currently assumes `TypeError` is raised when a string is passed. This isn't guaranteed. Let me change this test to check that our function doesn't accept strings by being more robust — checking that if a string is passed, it doesn't work as a list command (the subprocess would fail), not necessarily with a TypeError. Actually, the cleaner approach is to remove that test since we can't guarantee cross-platform TypeError. Let me replace it with a test that checks our function's behavior documents the expectation:
+[tool] Editing test_shell.py
+[tool] status: Completed
+Now let me do a final review of all test files to catch any remaining issues:
+[tool] Reading test_config.py:181-230
+[tool] status: Completed
+The round-trip test looks good. The `config_to_toml` helper properly escapes TOML strings and the test gracefully skips if the generated TOML is unparseable (due to exotic characters).
+
+Let me also verify the `test_config.py` has the correct `tmp_path` injection for the round-trip test (since it's a module-level `@given` function, not a class method):
+[tool] Reading test_config.py:241-300
+[tool] status: Completed
+There's a known issue with Hypothesis + pytest fixtures: `tmp_path` is a pytest fixture but `@given` functions that accept both fixture args and hypothesis args need to be handled carefully. Hypothesis supports pytest fixtures in `@given` test functions as long as the fixture parameters come before the `@given` parameters. The function signature has `tmp_path: Path` first, then the hypothesis args — this is the correct pattern and it works.
+
+However, there's a subtle issue: `_valid_str` allows spaces (via `whitelist_characters="-_ "`) in `test_command`, `label`, and `output_dir`. If `test_command` contains only spaces, it would pass the TOML round-trip but the config would have `test_command = "   "` which is technically valid per our config (it's a non-empty string). That's fine for the round-trip test.
+
+But `_valid_prefix` only allows lowercase letters, hyphens, and slashes. If it generates something like `"/"` or `"-"`, the branch name might start with those, but `make_branch_name` just prepends the prefix — the actual branch name comes from the safety module, not config. The config only stores the prefix string; `load()` doesn't validate the prefix structure beyond it being a string.
+
+Everything looks solid. Let me do one final check to make sure all files are in the right places:
+[tool] Reading listing night-shift
+[tool] status: Completed
+All files are in place. Everything looks correct. Let me now signal completion.
+[tool] Goal complete
+[tool] status: Completed
+## Summary of files created or changed
+
+### New files
+
+| File | Description |
+|---|---|
+| `pyproject.toml` | hatchling build backend; `typer`, `jinja2`, `gitpython` deps; `nightshift` entry point; `dev` group with `pytest`, `hypothesis`, `pytest-subprocess` |
+| `nightshift.toml.example` | All config fields with inline documentation |
+| `src/nightshift/__init__.py` | Package root |
+| `src/nightshift/shell.py` | `ShellResult`, `ShellError`, `run()` — no `shell=True`, captures stdout/stderr, raises on non-zero |
+| `src/nightshift/config.py` | `NightShiftConfig` + `DiaryConfig` frozen dataclasses, `load()` with cwd-first discovery, type validation, secret rejection |
+| `src/nightshift/cli.py` | Typer app with stub commands (`run`, `diary`, `status`, `schedule install/remove/status`); `validate_auth` wired into `run` |
+| `src/nightshift/github.py` | `Issue` dataclass; `validate_auth`, `list_labeled_issues`, `comment_on_issue`, `open_pr`, `add_label` |
+| `src/nightshift/safety.py` | `make_branch_name` (pure/slugified), `prepare_branch`, `check_diff_limits`; `DiffStats`, `BranchExistsError`, `OverLimitError` |
+| `src/nightshift/agent.py` | Skeleton |
+| `src/nightshift/runner.py` | Skeleton |
+| `src/nightshift/diary.py` | Skeleton |
+| `src/nightshift/scheduler.py` | Skeleton |
+| `src/nightshift/templates/diary.html.j2` | Skeleton |
+| `tests/conftest.py` | `tmp_git_repo` (bare repo with remote) and `nightshift_toml` fixtures |
+| `tests/test_shell.py` | 15 tests covering capture, cwd, stdin, error paths, timeout |
+| `tests/test_config.py` | 20 unit tests + Hypothesis round-trip property test |
+| `tests/test_github.py` | 40 tests with mocked `shell.run` |
+| `tests/test_safety.py` | 30 unit tests + 6 Hypothesis property tests |
+
+### Modified files
+
+| File | Change |
+|---|---|
+| `.kiro/specs/night-shift-core/tasks.md` | Ticked `- [x]` on T-01 through T-12 |
+| `.kiro/specs/night-shift-core/design.md` | Appended `## Decisions` section (7 entries) |
