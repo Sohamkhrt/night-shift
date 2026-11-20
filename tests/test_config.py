@@ -202,6 +202,68 @@ class TestDiaryConfig:
 
 
 # ---------------------------------------------------------------------------
+# agent_command field
+# ---------------------------------------------------------------------------
+
+
+class TestAgentCommand:
+    def test_default_agent_command_applied(self, tmp_path: Path) -> None:
+        from nightshift.config import _DEFAULT_AGENT_COMMAND
+
+        cfg = load(minimal_toml(tmp_path))
+        assert cfg.agent_command == list(_DEFAULT_AGENT_COMMAND)
+
+    def test_custom_agent_command_loaded(self, tmp_path: Path) -> None:
+        content = (
+            '[nightshift]\n'
+            'test_command = "pytest"\n'
+            'agent_command = ["my-agent", "--flag"]\n'
+        )
+        p = write_toml(tmp_path / "nightshift.toml", content)
+        cfg = load(p)
+        assert cfg.agent_command == ["my-agent", "--flag"]
+
+    def test_agent_command_must_be_list(self, tmp_path: Path) -> None:
+        content = (
+            '[nightshift]\n'
+            'test_command = "pytest"\n'
+            'agent_command = "kiro-cli chat"\n'
+        )
+        p = write_toml(tmp_path / "nightshift.toml", content)
+        with pytest.raises(ConfigError, match="agent_command"):
+            load(p)
+
+    def test_agent_command_must_not_be_empty(self, tmp_path: Path) -> None:
+        content = (
+            '[nightshift]\n'
+            'test_command = "pytest"\n'
+            'agent_command = []\n'
+        )
+        p = write_toml(tmp_path / "nightshift.toml", content)
+        with pytest.raises(ConfigError, match="agent_command"):
+            load(p)
+
+    def test_agent_command_elements_must_be_strings(self, tmp_path: Path) -> None:
+        content = (
+            '[nightshift]\n'
+            'test_command = "pytest"\n'
+            'agent_command = [1, 2]\n'
+        )
+        p = write_toml(tmp_path / "nightshift.toml", content)
+        with pytest.raises(ConfigError, match="agent_command"):
+            load(p)
+
+    def test_default_agent_command_includes_trust_tools(self, tmp_path: Path) -> None:
+        cfg = load(minimal_toml(tmp_path))
+        trust_arg = next(
+            (a for a in cfg.agent_command if "trust-tools" in a), None
+        )
+        assert trust_arg is not None
+        assert "fs_read" in trust_arg
+        assert "fs_write" in trust_arg
+
+
+# ---------------------------------------------------------------------------
 # Property-based: round-trip serialisation
 # ---------------------------------------------------------------------------
 

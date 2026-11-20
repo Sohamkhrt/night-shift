@@ -280,7 +280,12 @@ def run_issue(
         )
 
     # --- Step 2: run the agent ---
-    agent_result = agent_module.run(issue, config.max_minutes)
+    agent_result = agent_module.run(
+        issue,
+        config.max_minutes,
+        agent_command=config.agent_command,
+        repo_root=Path.cwd(),
+    )
 
     if agent_result.timed_out:
         _restore_branch(default_branch)

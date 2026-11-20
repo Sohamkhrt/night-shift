@@ -1,13 +1,21 @@
 """agent.py — spawn and supervise a kiro-cli chat session.
 
-Builds the prompt string from an Issue object and invokes
-``kiro-cli chat --no-interactive``.  The process runs with a hard timeout
-(``max_minutes`` from config).  All output is captured and stored in
-``AgentResult``.
+Builds the prompt string from an Issue object and invokes the agent command
+(default: ``kiro-cli chat --no-interactive --trust-tools=fs_read,fs_write``).
+The process runs with a hard timeout (``max_minutes`` from config).  All
+output is captured and stored in ``AgentResult``.
 
 Design decisions:
-- The prompt is plain text (not Jinja2) to keep the dependency footprint small
-  and the template easy to read in the source.
+- The prompt is passed as the final positional argument to kiro-cli, not on
+  stdin.  Verified working form:
+      kiro-cli chat --no-interactive --trust-tools=fs_read,fs_write "<prompt>"
+- The agent command is configurable via ``config.agent_command`` (a list of
+  strings).  ``run()`` appends the prompt as the last element.
+- The agent is granted ``fs_read`` and ``fs_write`` only — never shell access.
+  Night Shift runs the tests itself via ``config.test_command``.
+- The subprocess ``cwd`` is set to *repo_root* explicitly so the agent always
+  sees the right working directory, regardless of the process cwd at the time
+  ``run()`` is called.
 - Output is truncated to 10 000 characters in ``AgentResult.output`` so that
   large agent logs don't bloat the JSON run log.
 - ``run()`` never raises on agent failure or timeout — both conditions are
@@ -23,6 +31,7 @@ import logging
 import subprocess
 import time
 from dataclasses import dataclass
+from pathlib import Path
 
 from nightshift.github import Issue
 
@@ -30,6 +39,14 @@ logger = logging.getLogger(__name__)
 
 # Maximum characters captured from kiro-cli output stored in the run log.
 _MAX_OUTPUT_CHARS = 10_000
+
+# Default agent command.  Overridable via config.agent_command.
+DEFAULT_AGENT_COMMAND: list[str] = [
+    "kiro-cli",
+    "chat",
+    "--no-interactive",
+    "--trust-tools=fs_read,fs_write",
+]
 
 # Prompt template (matches the design doc exactly).
 _PROMPT_TEMPLATE = """\
@@ -77,8 +94,8 @@ def build_prompt(issue: Issue) -> str:
     Returns
     -------
     str
-        A plain-text prompt string ready to pass to kiro-cli via stdin or a
-        ``--message`` argument.
+        A plain-text prompt string ready to pass to kiro-cli as a positional
+        argument.
     """
     labels_str = ", ".join(issue.labels) if issue.labels else "(none)"
     return _PROMPT_TEMPLATE.format(
@@ -94,11 +111,17 @@ def build_prompt(issue: Issue) -> str:
 # ---------------------------------------------------------------------------
 
 
-def run(issue: Issue, max_minutes: int) -> AgentResult:
-    """Invoke ``kiro-cli chat --no-interactive`` for *issue*.
+def run(
+    issue: Issue,
+    max_minutes: int,
+    *,
+    agent_command: list[str] | None = None,
+    repo_root: Path | None = None,
+) -> AgentResult:
+    """Invoke the kiro-cli agent for *issue*.
 
-    The process receives the prompt on stdin and is killed if it exceeds
-    *max_minutes*.
+    The prompt is appended as the final positional argument to *agent_command*
+    so kiro-cli receives it directly rather than via stdin.
 
     Parameters
     ----------
@@ -107,6 +130,13 @@ def run(issue: Issue, max_minutes: int) -> AgentResult:
     max_minutes:
         Hard time limit in minutes.  The agent process is killed after this
         many minutes regardless of its state.
+    agent_command:
+        Command list to invoke (without the prompt).  Defaults to
+        ``DEFAULT_AGENT_COMMAND``.  Typically sourced from
+        ``config.agent_command``.
+    repo_root:
+        Working directory for the subprocess.  Defaults to ``Path.cwd()``.
+        Pass the repo root explicitly to avoid depending on the process cwd.
 
     Returns
     -------
@@ -114,15 +144,22 @@ def run(issue: Issue, max_minutes: int) -> AgentResult:
         Always returns (never raises).  Check ``AgentResult.success`` and
         ``AgentResult.timed_out`` to determine what happened.
     """
+    if agent_command is None:
+        agent_command = DEFAULT_AGENT_COMMAND
+    if repo_root is None:
+        repo_root = Path.cwd()
+
     prompt = build_prompt(issue)
     timeout_seconds = max_minutes * 60
-    cmd = ["kiro-cli", "chat", "--no-interactive"]
+    # Append prompt as final positional argument — kiro-cli chat [OPTIONS] [INPUT]
+    cmd = list(agent_command) + [prompt]
 
     logger.info(
-        "Spawning agent for issue #%d (timeout=%ds): %s",
+        "Spawning agent for issue #%d (timeout=%ds, cwd=%s): %s",
         issue.number,
         timeout_seconds,
-        " ".join(cmd),
+        repo_root,
+        " ".join(cmd[:4]),  # log command prefix only, not the full prompt
     )
 
     start = time.monotonic()
@@ -132,10 +169,10 @@ def run(issue: Issue, max_minutes: int) -> AgentResult:
     try:
         proc = subprocess.run(
             cmd,
-            input=prompt,
             capture_output=True,
             text=True,
             timeout=timeout_seconds,
+            cwd=repo_root,
         )
         duration = time.monotonic() - start
         raw_output = proc.stdout + ("\n" + proc.stderr if proc.stderr else "")

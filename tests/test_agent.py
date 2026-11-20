@@ -3,17 +3,19 @@
 Coverage:
   T-13 — build_prompt: unit tests (prompt contains issue number, title, body).
   T-14 — run(): normal exit, non-zero exit, TimeoutExpired.
+  A1-A3 — prompt as positional arg, agent_command config field, cwd/repo_root.
 """
 
 from __future__ import annotations
 
 import subprocess
 from datetime import datetime, timezone
+from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import pytest
 
-from nightshift.agent import AgentResult, build_prompt, run
+from nightshift.agent import DEFAULT_AGENT_COMMAND, AgentResult, build_prompt, run
 from nightshift.github import Issue
 
 
@@ -164,7 +166,8 @@ class TestAgentRunSuccess:
         assert kwargs.get("timeout") == 5 * 60
 
     @patch("nightshift.agent.subprocess.run")
-    def test_command_is_kiro_cli(self, mock_run: MagicMock) -> None:
+    def test_command_starts_with_kiro_cli(self, mock_run: MagicMock) -> None:
+        """Default command starts with the kiro-cli invocation."""
         mock_run.return_value = MagicMock(returncode=0, stdout="", stderr="")
         run(make_issue(), max_minutes=1)
         cmd = mock_run.call_args[0][0]
@@ -173,14 +176,90 @@ class TestAgentRunSuccess:
         assert "--no-interactive" in cmd
 
     @patch("nightshift.agent.subprocess.run")
-    def test_prompt_sent_as_input(self, mock_run: MagicMock) -> None:
+    def test_default_command_includes_trust_tools(self, mock_run: MagicMock) -> None:
+        """Default command grants fs_read,fs_write but not shell."""
+        mock_run.return_value = MagicMock(returncode=0, stdout="", stderr="")
+        run(make_issue(), max_minutes=1)
+        cmd = mock_run.call_args[0][0]
+        assert any("trust-tools" in arg for arg in cmd)
+        trust_arg = next(arg for arg in cmd if "trust-tools" in arg)
+        assert "fs_read" in trust_arg
+        assert "fs_write" in trust_arg
+
+    @patch("nightshift.agent.subprocess.run")
+    def test_prompt_is_last_positional_arg(self, mock_run: MagicMock) -> None:
+        """Prompt is appended as the final positional arg, not passed via stdin."""
         mock_run.return_value = MagicMock(returncode=0, stdout="", stderr="")
         issue = make_issue(number=7, title="My issue")
         run(issue, max_minutes=1)
+        cmd = mock_run.call_args[0][0]
         _, kwargs = mock_run.call_args
-        sent_input = kwargs.get("input", "")
-        assert "7" in sent_input
-        assert "My issue" in sent_input
+        # Prompt is the last element of the command list
+        assert "7" in cmd[-1]
+        assert "My issue" in cmd[-1]
+        # input= kwarg must NOT be used
+        assert "input" not in kwargs or kwargs.get("input") is None
+
+    @patch("nightshift.agent.subprocess.run")
+    def test_no_stdin_input(self, mock_run: MagicMock) -> None:
+        """subprocess.run is called without input= (prompt is a positional arg)."""
+        mock_run.return_value = MagicMock(returncode=0, stdout="", stderr="")
+        run(make_issue(), max_minutes=1)
+        _, kwargs = mock_run.call_args
+        assert "input" not in kwargs or kwargs.get("input") is None
+
+
+# ---------------------------------------------------------------------------
+# A1-A3 — agent_command and repo_root parameters
+# ---------------------------------------------------------------------------
+
+
+class TestAgentCommandAndRepoRoot:
+    @patch("nightshift.agent.subprocess.run")
+    def test_custom_agent_command_used(self, mock_run: MagicMock) -> None:
+        """When agent_command is supplied, it replaces the default command prefix."""
+        mock_run.return_value = MagicMock(returncode=0, stdout="", stderr="")
+        custom_cmd = ["my-agent", "--flag"]
+        run(make_issue(), max_minutes=1, agent_command=custom_cmd)
+        cmd = mock_run.call_args[0][0]
+        assert cmd[0] == "my-agent"
+        assert cmd[1] == "--flag"
+        # Prompt is still appended as the last element
+        assert "Fix the login bug" in cmd[-1]
+
+    @patch("nightshift.agent.subprocess.run")
+    def test_default_agent_command_matches_constant(self, mock_run: MagicMock) -> None:
+        """When agent_command is None, DEFAULT_AGENT_COMMAND is used."""
+        mock_run.return_value = MagicMock(returncode=0, stdout="", stderr="")
+        run(make_issue(), max_minutes=1, agent_command=None)
+        cmd = mock_run.call_args[0][0]
+        assert cmd[: len(DEFAULT_AGENT_COMMAND)] == DEFAULT_AGENT_COMMAND
+
+    @patch("nightshift.agent.subprocess.run")
+    def test_repo_root_passed_as_cwd(self, mock_run: MagicMock, tmp_path: Path) -> None:
+        """repo_root is forwarded as the cwd kwarg to subprocess.run."""
+        mock_run.return_value = MagicMock(returncode=0, stdout="", stderr="")
+        run(make_issue(), max_minutes=1, repo_root=tmp_path)
+        _, kwargs = mock_run.call_args
+        assert kwargs.get("cwd") == tmp_path
+
+    @patch("nightshift.agent.subprocess.run")
+    def test_default_repo_root_is_cwd(self, mock_run: MagicMock) -> None:
+        """When repo_root is None, Path.cwd() is used as cwd."""
+        mock_run.return_value = MagicMock(returncode=0, stdout="", stderr="")
+        run(make_issue(), max_minutes=1, repo_root=None)
+        _, kwargs = mock_run.call_args
+        assert kwargs.get("cwd") == Path.cwd()
+
+    def test_default_agent_command_constant(self) -> None:
+        """DEFAULT_AGENT_COMMAND has the expected structure."""
+        assert DEFAULT_AGENT_COMMAND[0] == "kiro-cli"
+        assert "chat" in DEFAULT_AGENT_COMMAND
+        assert "--no-interactive" in DEFAULT_AGENT_COMMAND
+        assert any("trust-tools" in a for a in DEFAULT_AGENT_COMMAND)
+        # Must NOT contain 'shell' in the trust-tools flag
+        trust_arg = next(a for a in DEFAULT_AGENT_COMMAND if "trust-tools" in a)
+        assert "shell" not in trust_arg
 
 
 # ---------------------------------------------------------------------------

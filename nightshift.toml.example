@@ -34,6 +34,17 @@ branch_prefix = "night-shift/"
 # testing your configuration before the first real run.
 dry_run = false
 
+# Command used to invoke the coding agent.  The issue prompt is appended as
+# the final positional argument when the subprocess is spawned, so the agent
+# receives:  <agent_command[0]> <agent_command[1]> ... "<prompt>"
+#
+# The default grants fs_read and fs_write only — no shell access.
+# Night Shift runs your tests itself via test_command above.
+#
+# Override this to use a different agent binary or to pass extra flags.
+# Every element must be a separate string (no shell quoting required).
+agent_command = ["kiro-cli", "chat", "--no-interactive", "--trust-tools=fs_read,fs_write"]
+
 [diary]
 
 # Names assigned round-robin to ghost agents in the diary output.
@@ -52,6 +63,10 @@ output_dir = ".nightshift/diary"
 #
 # If you need to pass a token explicitly (e.g. in CI), set:
 #   GH_TOKEN=<your-token>  (read by the gh CLI automatically)
+#
+# If you use the GitHub MCP server instead of the gh CLI (see
+# .kiro/settings/mcp.json), set:
+#   GITHUB_PERSONAL_ACCESS_TOKEN=<your-token>
 #
 # No environment variable is read directly by Night Shift itself.
 # ------------------------------------------------------------------------------

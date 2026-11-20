@@ -23,6 +23,15 @@ from pathlib import Path
 
 _DEFAULT_GHOST_NAMES = ["Casper", "Spook", "Wraith", "Phantom", "Specter"]
 
+# Default agent command.  Grants fs_read and fs_write only — Night Shift runs
+# tests itself, so the agent never needs shell access.
+_DEFAULT_AGENT_COMMAND: list[str] = [
+    "kiro-cli",
+    "chat",
+    "--no-interactive",
+    "--trust-tools=fs_read,fs_write",
+]
+
 
 @dataclass(frozen=True)
 class DiaryConfig:
@@ -43,6 +52,12 @@ class NightShiftConfig:
     max_lines: int = 500
     branch_prefix: str = "night-shift/"
     dry_run: bool = False
+
+    # Agent command: list of strings prepended before the prompt argument.
+    # Override to use a different agent binary or pass extra flags.
+    agent_command: list[str] = field(
+        default_factory=lambda: list(_DEFAULT_AGENT_COMMAND)
+    )
 
     # Nested sub-config
     diary: DiaryConfig = field(default_factory=DiaryConfig)
@@ -102,6 +117,17 @@ def _parse_nightshift_section(section: dict) -> dict:
     for f in _STR_FIELDS:
         if f in section and not isinstance(section[f], str):
             errors.append(f"nightshift.{f} must be a string, got {type(section[f]).__name__}")
+
+    if "agent_command" in section:
+        ac = section["agent_command"]
+        if (
+            not isinstance(ac, list)
+            or not ac
+            or not all(isinstance(item, str) for item in ac)
+        ):
+            errors.append(
+                "nightshift.agent_command must be a non-empty list of strings"
+            )
 
     if errors:
         raise ConfigError("Configuration errors:\n" + "\n".join(f"  • {e}" for e in errors))
@@ -182,5 +208,8 @@ def load(path: Path | None = None) -> NightShiftConfig:
         max_lines=nightshift_section.get("max_lines", 500),
         branch_prefix=nightshift_section.get("branch_prefix", "night-shift/"),
         dry_run=nightshift_section.get("dry_run", False),
+        agent_command=nightshift_section.get(
+            "agent_command", list(_DEFAULT_AGENT_COMMAND)
+        ),
         diary=diary,
     )

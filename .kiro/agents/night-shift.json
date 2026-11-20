@@ -1,0 +1,33 @@
+{
+  "name": "night-shift",
+  "description": "Night Shift development agent: works on GitHub issues overnight, writes code, and respects safety limits.",
+  "prompt": "You are a Night Shift ghost agent working on a GitHub issue in the repository at the current directory. Keep changes minimal and focused. Do not modify unrelated files. You have file read and write access only — Night Shift runs the tests itself.",
+  "tools": ["read", "write", "grep", "glob", "code"],
+  "allowedTools": ["read", "grep", "glob", "code"],
+  "toolsSettings": {
+    "write": {
+      "allowedPaths": ["src/**", "tests/**", "*.py", "*.toml", "*.md"]
+    }
+  },
+  "hooks": {
+    "agentSpawn": [
+      {
+        "command": "gh auth status",
+        "timeout_ms": 10000
+      }
+    ],
+    "postToolUse": [
+      {
+        "matcher": "fs_write",
+        "command": "python -m pytest --tb=short -q 2>&1 | tail -20",
+        "timeout_ms": 120000
+      }
+    ],
+    "stop": [
+      {
+        "command": "echo \"Night Shift agent turn complete. Check .nightshift/diary/ for the Ghost Diary.\"",
+        "timeout_ms": 5000
+      }
+    ]
+  }
+}
