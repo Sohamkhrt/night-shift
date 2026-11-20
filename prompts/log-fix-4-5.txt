@@ -1,0 +1,64 @@
+
+[tool] Creating task list: Fix 14 failing tests in 3 areas: runner.py diary import, ...
+[tool] status: Completed
+Let me read all three files first.
+[tool] Reading runner.py:1, test_diary.py:1, agent.py:1
+[tool] status: Completed
+Good — now I have a clear picture of all three files. Let me check what the tests expect for runner.py specifically:
+[tool] Searching for 'diary_module' in test_runner.py
+[tool] status: Completed
+The tests patch `nightshift.runner.diary_module.save` and `nightshift.runner.diary_module.render`. In `runner.py`, `diary_module` is currently imported inside the `run_all` function body (a local import), which means it's not visible as a module-level name and can't be patched via `nightshift.runner.diary_module`.
+
+The fix is to move the import to the top of the file. For `test_diary.py`, the two property tests that accept `tmp_path` as a parameter need to use `tempfile.TemporaryDirectory` instead. For `agent.py`, `build_prompt` already includes `Labels:` in `_PROMPT_TEMPLATE` — let me verify the test is actually failing.
+[tool] Searching for 'test_no_labels_shows_none|Labels' in test_agent.py
+[tool] status: Completed
+
+[tool] Reading test_agent.py:21-100
+[tool] status: Completed
+`test_no_labels_shows_none` passes `labels=[]`. In `agent.py`, `build_prompt` already handles that correctly:
+```python
+labels_str = ", ".join(issue.labels) if issue.labels else "(none)"
+```
+
+But `make_issue` defaults to `labels or ["night-shift"]`, so `labels=[]` becomes `[]`. Let me check the `Issue` dataclass to see if `labels` can be an empty list or if it coerces it:
+[tool] Searching for 'class Issue|labels' in github.py
+[tool] status: Completed
+The `Issue` dataclass is straightforward — `labels` is just a `list[str]`. Now let me look at the test output to confirm whether `agent.py` is actually the problem or if it's somehow the `_PROMPT_TEMPLATE` missing the `Labels:` line:
+
+Looking at the agent.py I already read — `_PROMPT_TEMPLATE` already contains `Labels: {labels}` and `build_prompt` already formats it. The test passes `labels=[]`, the helper does `labels or ["night-shift"]` which means `[] or ["night-shift"]` = `["night-shift"]`. So to actually pass an empty list, the test calls `make_issue(labels=[])` but the helper converts it back to `["night-shift"]`.
+
+Wait, let me re-read: `make_issue(labels=[] )` → `labels=labels or ["night-shift"]` → `[] or ["night-shift"]` = `["night-shift"]`. So the test never actually creates an issue with empty labels through `make_issue`. It must call `Issue(...)` directly or the test already handles this. Let me re-read the test:
+
+```python
+def test_no_labels_shows_none(self) -> None:
+    issue = make_issue(labels=[])
+    prompt = build_prompt(issue)
+    assert "(none)" in prompt
+```
+
+The helper `make_issue` has `labels=labels or ["night-shift"]` — so `make_issue(labels=[])` produces an issue with `labels=["night-shift"]`, not `[]`. That means `"(none)"` will never appear. The test expects `(none)` but gets `night-shift`. The fix is in `make_issue` in the test file — but the task says fix `build_prompt`, not the test helper.
+
+Let me re-read the task description: "Make build_prompt include a 'Labels: ...' line, showing '(none)' when there are no labels." But `build_prompt` already does this. The real bug is that `make_issue(labels=[])` doesn't produce an issue with empty labels because of the `or` fallback.
+
+The task says "Do not change anything else." — so I should fix `make_issue` in `test_agent.py` to not apply the `or` fallback when `labels` is explicitly passed. Or I should look at this differently: the test file says to make `build_prompt` include the Labels line, which it already has. The actual fix needed is in `test_agent.py`'s `make_issue` helper.
+
+Let me re-read the task instructions carefully: "tests/test_agent.py::TestBuildPrompt::test_no_labels_shows_none: the prompt does not include labels at all. Make build_prompt include a 'Labels: ...' line, showing '(none)' when no labels."
+
+This says the prompt does NOT include labels at all — but I can see it does in the current `agent.py`. Let me check if the `_PROMPT_TEMPLATE` in agent.py actually has that line, or if the file I read is already the "fixed" version. Let me re-read:
+
+Looking at what I read: `_PROMPT_TEMPLATE` contains `Labels: {labels}` on line after `{body}`. And `build_prompt` does `labels_str = ", ".join(issue.labels) if issue.labels else "(none)"`. So the agent.py template is already correct.
+
+The bug must actually be in `test_agent.py`'s `make_issue` function: `labels=labels or ["night-shift"]` converts `[]` to `["night-shift"]`. I need to fix that helper so an explicitly passed empty list stays empty.
+[tool] Reading .test-output.txt:1
+[tool] status: Completed
+Now I have a complete picture. The three fixes are:
+
+1. **`runner.py`**: Move `from nightshift import diary as diary_module` from inside `run_all()` to the top-level imports.
+2. **`test_diary.py`**: Replace `tmp_path: Path` fixture parameter with `tempfile.TemporaryDirectory` inside `test_render_never_raises` and `test_html_always_contains_date`.
+3. **`test_agent.py`**: Fix `make_issue` so `labels=[]` doesn't get replaced — change `labels=labels or ["night-shift"]` to use `None` as the sentinel properly.
+
+Now making all three changes:
+[tool] Editing runner.py
+[tool] status: Completed
+
+Error: Internal error

@@ -37,6 +37,7 @@ from datetime import date, datetime, timezone
 from typing import Literal
 
 from nightshift import agent as agent_module
+from nightshift import diary as diary_module
 from nightshift import github as github_module
 from nightshift.config import NightShiftConfig
 from nightshift.github import Issue
