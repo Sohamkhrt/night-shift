@@ -94,6 +94,7 @@ a:hover { text-decoration-thickness: 2px; }
   font: 600 1.05rem/1.2 var(--face-label);
   letter-spacing: .28em; text-transform: uppercase; color: var(--brass-hi);
 }
+.masthead .sep { font-style: normal; }
 .masthead .brand span { color: var(--on-leather-2); font-weight: 400; letter-spacing: .2em; }
 .masthead p { margin: 0; font: 400 .9rem/1.4 var(--face-label); letter-spacing: .06em; color: var(--on-leather-2); }
 .masthead p b { color: var(--on-leather); font-weight: 600; }
@@ -275,6 +276,7 @@ pre {
   .hook { width: 5.9rem; }
   .tag { padding-inline: .45rem; }
   .tag-state { letter-spacing: .02em; gap: .2rem; }
+  .masthead .sep { display: none; }
   .masthead .brand span { display: block; margin-top: .3rem; letter-spacing: .16em; }
   .letterhead h1 { font-size: 1.7rem; }
   .stamp { position: static; display: inline-block; margin-bottom: 1rem; }
@@ -293,7 +295,7 @@ pre {
 <header class="board">
   <div class="board-inner">
     <div class="masthead">
-      <p class="brand">Night Shift <span>· Night Desk Handover</span></p>
+      <p class="brand">Night Shift <span><i class="sep">· </i>Night Desk Handover</span></p>
       <p>{% if run_log.repo != 'unknown' %}<b>{{ run_log.repo }}</b> · {% endif %}shift {{ run_log.start_time.strftime('%H:%M') }}–{{ run_log.end_time.strftime('%H:%M') }} UTC</p>
     </div>
 
