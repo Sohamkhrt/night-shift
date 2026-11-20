@@ -16,6 +16,12 @@ Public functions
 ``run_all(config) -> RunLog``
     Fetch issues, loop over them, write the diary, return the ``RunLog``.
 
+``acquire_lock(lock_path) -> None``
+    Create the run lock file, raising ``LockError`` if it already exists.
+
+``release_lock(lock_path) -> None``
+    Remove the run lock file (idempotent).
+
 Design decisions (see design.md Decisions section)
 ---------------------------------------------------
 - D-08  ``run_issue`` accepts an explicit *ghost_name* so the caller controls
@@ -26,6 +32,10 @@ Design decisions (see design.md Decisions section)
 - D-10  ``run_issue`` receives the *repo* parameter as a plain string.
   Determining the repo name is the caller's responsibility; ``run_all``
   resolves it via ``gh repo view``.
+- D-11  Lock file uses O_CREAT | O_EXCL via ``open(..., 'x')`` for atomic
+  creation on all platforms (no POSIX-only ``fcntl`` dependency).  The lock
+  path defaults to ``.nightshift/locks/run.lock`` and is passed as a
+  parameter so tests can override it without touching the filesystem.
 """
 
 from __future__ import annotations
@@ -34,9 +44,11 @@ import logging
 import traceback
 from dataclasses import dataclass, field
 from datetime import date, datetime, timezone
+from pathlib import Path
 from typing import Literal
 
 from nightshift import agent as agent_module
+from nightshift import diary as diary_module
 from nightshift import github as github_module
 from nightshift.config import NightShiftConfig
 from nightshift.github import Issue
@@ -48,10 +60,68 @@ from nightshift.safety import (
     make_branch_name,
     prepare_branch,
 )
-from nightshift import diary as diary_module
 from nightshift.shell import ShellError, run as shell_run
 
 logger = logging.getLogger(__name__)
+
+# ---------------------------------------------------------------------------
+# Lock file (T-23)
+# ---------------------------------------------------------------------------
+
+#: Default path for the run lock file (relative to cwd, i.e. the repo root).
+DEFAULT_LOCK_PATH = Path(".nightshift") / "locks" / "run.lock"
+
+
+class LockError(RuntimeError):
+    """Raised when a concurrent Night Shift run is already in progress."""
+
+    def __init__(self, lock_path: Path) -> None:
+        self.lock_path = lock_path
+        super().__init__(
+            f"Another Night Shift run is already in progress "
+            f"(lock file: {lock_path}).  "
+            "If you are sure no other run is active, delete the lock file and retry."
+        )
+
+
+def acquire_lock(lock_path: Path = DEFAULT_LOCK_PATH) -> None:
+    """Create the run lock file atomically.
+
+    Uses ``open(..., 'x')`` (exclusive creation) so the operation is atomic on
+    all platforms without POSIX-only APIs.
+
+    Parameters
+    ----------
+    lock_path:
+        Path to the lock file.  Defaults to
+        ``.nightshift/locks/run.lock``.
+
+    Raises
+    ------
+    LockError
+        If the lock file already exists (another run is in progress).
+    """
+    lock_path.parent.mkdir(parents=True, exist_ok=True)
+    try:
+        lock_path.open("x").close()
+    except FileExistsError:
+        raise LockError(lock_path)
+    logger.debug("Acquired run lock: %s", lock_path)
+
+
+def release_lock(lock_path: Path = DEFAULT_LOCK_PATH) -> None:
+    """Remove the run lock file.  Idempotent: does nothing if already absent.
+
+    Parameters
+    ----------
+    lock_path:
+        Path to the lock file.
+    """
+    try:
+        lock_path.unlink()
+        logger.debug("Released run lock: %s", lock_path)
+    except FileNotFoundError:
+        pass  # already gone — that is fine
 
 # Outcome literals (matches design.md data model)
 Outcome = Literal[
@@ -363,25 +433,47 @@ def run_issue(
 # ---------------------------------------------------------------------------
 
 
-def run_all(config: NightShiftConfig) -> RunLog:
+def run_all(config: NightShiftConfig, lock_path: Path = DEFAULT_LOCK_PATH) -> RunLog:
     """Execute a complete nightly run and return a :class:`RunLog`.
 
+    Acquires a lock file at startup to prevent concurrent runs (T-23).
+    The lock is always released in a ``finally`` block.
+
     Steps:
-    1. Fetch labeled issues (up to ``config.max_issues``).
-    2. Determine repo name.
-    3. For each issue, call ``run_issue`` (catching unexpected exceptions).
-    4. Render the Ghost Diary.
-    5. Return the ``RunLog``.
+    1. Acquire lock file.
+    2. Fetch labeled issues (up to ``config.max_issues``).
+    3. Determine repo name.
+    4. For each issue, call ``run_issue`` (catching unexpected exceptions).
+    5. Render the Ghost Diary.
+    6. Release lock file.
+    7. Return the ``RunLog``.
 
     Parameters
     ----------
     config:
         The active ``NightShiftConfig``.
+    lock_path:
+        Path to the lock file (default: ``.nightshift/locks/run.lock``).
+        Override in tests to avoid touching the real filesystem.
 
     Returns
     -------
     RunLog
+
+    Raises
+    ------
+    LockError
+        If another Night Shift run is already in progress.
     """
+    # T-23: acquire lock before doing any work
+    acquire_lock(lock_path)
+    try:
+        return _run_all_inner(config)
+    finally:
+        release_lock(lock_path)
+
+
+def _run_all_inner(config: NightShiftConfig) -> RunLog:
     start_time = datetime.now(timezone.utc)
 
     # Repo name (best-effort; fall back to "unknown")

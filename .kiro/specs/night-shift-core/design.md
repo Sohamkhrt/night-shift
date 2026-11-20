@@ -236,7 +236,7 @@ class RunLog:
 
 ## Decisions
 
-Choices made during Phase 0–3 implementation where the design was silent or ambiguous.
+Choices made during Phase 0–6 implementation where the design was silent or ambiguous.
 
 | # | Location | Decision |
 |---|---|---|
@@ -247,3 +247,10 @@ Choices made during Phase 0–3 implementation where the design was silent or am
 | D-05 | `safety.py` — `check_diff_limits` diff target | `git diff --stat HEAD` is used (working tree vs HEAD). This captures all changes since the last commit, including untracked staged or unstaged changes from the agent. An alternative (`--cached`) would miss unstaged files; the design explicitly said "after agent runs, before tests". |
 | D-06 | `github.py` — `open_pr` push responsibility | `open_pr()` performs both `git push origin <branch>` and `gh pr create`. The design described `runner.py` calling push + PR separately, but consolidating them in `open_pr` reduces error-prone sequencing at call sites. |
 | D-07 | `shell.py` — `input` parameter name shadows builtin | The parameter is named `input` to match `subprocess.run`'s API for familiarity, accepting the shadow of the builtin. A `# noqa` comment would suppress any linter warning. |
+| D-08 | `runner.py` — `run_issue` ghost_name parameter | `run_issue` accepts an explicit `ghost_name` so the caller controls ghost assignment, keeping the function pure of global state. |
+| D-09 | `runner.py` — per-issue exception handling | Unexpected exceptions inside `run_issue` propagate to `run_all`, which records them as `outcome="agent_error"` and continues. The run never aborts mid-way due to a single issue crash. |
+| D-10 | `runner.py` — repo name | Repo name is resolved by `_get_repo_name()` via `gh repo view`, with a `"unknown"` fallback. |
+| D-11 | `runner.py` — lock file implementation | Lock file uses `open(..., 'x')` (exclusive creation) for atomic, cross-platform operation without POSIX-only APIs (`fcntl`). The lock path is a parameter on `run_all` so tests can redirect it to `tmp_path` without filesystem side effects. |
+| D-12 | `runner.py` — `_run_all_inner` split | The lock wrapper (`run_all`) delegates to `_run_all_inner` so the inner logic remains independently patchable in tests (the `TestRunAll` suite patches `acquire_lock`/`release_lock`; `TestRunAllLocking` patches `_run_all_inner`). |
+| D-13 | `cli.py` — deferred imports in commands | `config`, `runner`, and `diary` are imported inside each command function rather than at module level. This keeps startup time fast (no config parse at import) and keeps `--help` working without needing a valid `nightshift.toml` on `PATH`. |
+| D-14 | `cli.py` — `--config` parameter renamed | The `--config` parameter is bound to `config_path: str` (not `config: str`) to avoid shadowing Python's built-in `config` module name inside the function body. |

@@ -56,9 +56,9 @@ Tasks are ordered for incremental delivery. Each task is independently testable.
 
 ## Phase 6 — CLI wiring (Day 5)
 
-- [ ] **T-21** Wire `nightshift run` to call `runner.run_all(config)`. Add `--dry-run` flag (overrides config). Print per-issue summary to stdout and diary path at end. *(REQ-01–REQ-07)*
-- [ ] **T-22** Wire `nightshift status` to list labeled issues (from `github.list_labeled_issues`) and last run summary (from latest JSON log). *(REQ-01)*
-- [ ] **T-23** Add lock file logic to `runner.py`: check `.nightshift/locks/run.lock` at startup, create on entry, delete on exit (with `try/finally`). *(design: safety model)*
+- [x] **T-21** Wire `nightshift run` to call `runner.run_all(config)`. Add `--dry-run` flag (overrides config). Print per-issue summary to stdout and diary path at end. *(REQ-01–REQ-07)*
+- [x] **T-22** Wire `nightshift status` to list labeled issues (from `github.list_labeled_issues`) and last run summary (from latest JSON log). *(REQ-01)*
+- [x] **T-23** Add lock file logic to `runner.py`: check `.nightshift/locks/run.lock` at startup, create on entry, delete on exit (with `try/finally`). *(design: safety model)*
 
 ---
 

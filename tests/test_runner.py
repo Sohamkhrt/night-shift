@@ -393,6 +393,17 @@ _RUN_ISSUE = "nightshift.runner.run_issue"
 
 
 class TestRunAll:
+    # Patch acquire_lock and release_lock so these tests do not touch the
+    # real filesystem (the lock file is irrelevant to what T-16 tests).
+    # T-23 lock-specific behaviour is tested in test_cli.py::TestRunAllLocking.
+    @pytest.fixture(autouse=True)
+    def _mock_lock(self) -> None:  # type: ignore[return]
+        with (
+            patch("nightshift.runner.acquire_lock"),
+            patch("nightshift.runner.release_lock"),
+        ):
+            yield
+
     def _make_event(self, number: int, outcome: str) -> RunEvent:
         return RunEvent(
             issue_number=number,

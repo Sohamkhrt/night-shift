@@ -254,7 +254,7 @@ summary:hover { color: var(--ink); }
 pre {
   margin: .6rem 0 0; padding: .9rem 1rem; max-height: 22rem; overflow: auto;
   background: var(--card-2); border-radius: 4px;
-  font: 400 .8rem/1.55 var(--face-code); color: var(--ink); white-space: pre;
+  font: 400 .8rem/1.55 var(--face-code); color: var(--ink); white-space: pre-wrap; overflow-wrap: normal; word-break: normal;
   scrollbar-color: var(--rule) transparent;
 }
 
@@ -272,8 +272,10 @@ pre {
   body { font-size: 1rem; }
   .board { padding-top: 1.5rem; }
   .hooks { gap: 1.5rem .8rem; }
-  .hook { width: 5.6rem; }
-  .tag-state { letter-spacing: .04em; }
+  .hook { width: 5.9rem; }
+  .tag { padding-inline: .45rem; }
+  .tag-state { letter-spacing: .02em; gap: .2rem; }
+  .masthead .brand span { display: block; margin-top: .3rem; letter-spacing: .16em; }
   .letterhead h1 { font-size: 1.7rem; }
   .stamp { position: static; display: inline-block; margin-bottom: 1rem; }
   .entry { grid-template-columns: 1fr; }
