@@ -3,10 +3,12 @@
 Entry point: ``nightshift = "nightshift.cli:app"`` in pyproject.toml.
 
 Commands:
-  nightshift run       -- kick off (or simulate) a nightly run  (T-21)
-  nightshift diary     -- (re-)render the Ghost Diary HTML       (T-20)
-  nightshift schedule  -- install/remove/status OS-level schedule
-  nightshift status    -- show labeled issues and last run summary (T-22)
+  nightshift run              -- kick off (or simulate) a nightly run  (T-21)
+  nightshift diary            -- (re-)render the Ghost Diary HTML       (T-20)
+  nightshift schedule install -- install the OS-level schedule          (T-27)
+  nightshift schedule remove  -- remove the OS-level schedule           (T-27)
+  nightshift schedule status  -- report whether a schedule is installed (T-27)
+  nightshift status           -- show labeled issues and last run summary (T-22)
 """
 
 from __future__ import annotations
@@ -17,6 +19,7 @@ from typing import Annotated, Optional
 import typer
 
 from nightshift.github import GitHubAuthError, validate_auth
+from nightshift.scheduler import get_scheduler
 
 app = typer.Typer(
     name="nightshift",
@@ -236,7 +239,7 @@ def status(
 
 
 # ---------------------------------------------------------------------------
-# nightshift schedule install / remove / status
+# nightshift schedule install / remove / status  (T-27)
 # ---------------------------------------------------------------------------
 
 
@@ -246,24 +249,81 @@ def schedule_install(
         str,
         typer.Option("--time", help="Time to run in HH:MM format (default: 01:00)."),
     ] = "01:00",
+    config_path: Annotated[
+        Optional[str],
+        typer.Option("--config", help="Path to nightshift.toml (default: auto-discover)."),
+    ] = None,
 ) -> None:
-    """Install the OS-level cron / Task Scheduler entry."""
-    # Phase 7 will wire this to scheduler.install().
-    typer.echo("nightshift schedule install -- not yet implemented")
+    """Install the OS-level cron / Task Scheduler entry.
+
+    On Linux/macOS this adds an entry to the current user's crontab.
+    On Windows this creates a Task Scheduler entry that runs every day at the
+    given time.
+
+    The scheduled command is 'nightshift run', or on Windows the equivalent
+    'uv run --directory <repo> nightshift run --config <config>' form.
+    """
+    from pathlib import Path
+
+    # Validate the --time flag before touching the OS scheduler.
+    try:
+        hour_str, minute_str = time.split(":")
+        hour = int(hour_str)
+        minute = int(minute_str)
+        if not (0 <= hour <= 23 and 0 <= minute <= 59):
+            raise ValueError
+    except (ValueError, AttributeError):
+        typer.echo(
+            f"Error: '{time}' is not a valid time (expected HH:MM, e.g. 01:00).",
+            err=True,
+        )
+        raise typer.Exit(code=1)
+
+    cron_expr = f"{minute} {hour} * * *"
+
+    cfg_path = Path(config_path).resolve() if config_path else None
+    scheduler = get_scheduler(config_path=cfg_path)
+
+    # The command string written into the crontab / task.  On Windows the
+    # scheduler builds the full 'uv run --directory ...' form internally, so
+    # this value is effectively unused there, but we pass it for consistency.
+    command = "nightshift run"
+    if config_path:
+        command += f" --config {cfg_path}"
+
+    try:
+        scheduler.install(command, cron_expr)
+    except Exception as exc:
+        typer.echo(f"Error installing schedule: {exc}", err=True)
+        raise typer.Exit(code=1)
+
+    typer.echo(f"Night Shift scheduled at {time} daily.")
     raise typer.Exit(code=0)
 
 
 @schedule_app.command("remove")
 def schedule_remove() -> None:
     """Remove the OS-level cron / Task Scheduler entry."""
-    # Phase 7 will wire this to scheduler.uninstall().
-    typer.echo("nightshift schedule remove -- not yet implemented")
+    scheduler = get_scheduler()
+    try:
+        scheduler.uninstall()
+    except Exception as exc:
+        typer.echo(f"Error removing schedule: {exc}", err=True)
+        raise typer.Exit(code=1)
+
+    typer.echo("Night Shift schedule removed.")
     raise typer.Exit(code=0)
 
 
 @schedule_app.command("status")
 def schedule_status() -> None:
     """Report whether a schedule is installed and the next run time."""
-    # Phase 7 will wire this to scheduler.status().
-    typer.echo("nightshift schedule status -- not yet implemented")
+    scheduler = get_scheduler()
+    try:
+        result = scheduler.status()
+    except Exception as exc:
+        typer.echo(f"Error checking schedule status: {exc}", err=True)
+        raise typer.Exit(code=1)
+
+    typer.echo(result)
     raise typer.Exit(code=0)

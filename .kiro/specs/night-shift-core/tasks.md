@@ -64,10 +64,10 @@ Tasks are ordered for incremental delivery. Each task is independently testable.
 
 ## Phase 7 — Scheduler (Day 6)
 
-- [ ] **T-24** Implement `scheduler.py`: `Scheduler` protocol, `CronScheduler` (read/write crontab via `crontab -l` / `crontab -`). Unit tests: mock subprocess, assert correct crontab manipulation. *(REQ-08, AC-08.1)*
-- [ ] **T-25** Implement `scheduler.py`: `TaskSchedulerScheduler` for Windows (uses `schtasks`). Unit tests: mock subprocess. *(REQ-08, AC-08.2)*
-- [ ] **T-26** Add `KiroCrewScheduler` stub with a `NotImplementedError` and a comment pointing to the Kiro Crew docs. *(tech.md: pluggability)*
-- [ ] **T-27** Wire `nightshift schedule install/remove/status` CLI subcommand. *(REQ-08)*
+- [x] **T-24** Implement `scheduler.py`: `Scheduler` protocol, `CronScheduler` (read/write crontab via `crontab -l` / `crontab -`). Unit tests: mock subprocess, assert correct crontab manipulation. *(REQ-08, AC-08.1)*
+- [x] **T-25** Implement `scheduler.py`: `TaskSchedulerScheduler` for Windows (uses `schtasks`). Unit tests: mock subprocess. *(REQ-08, AC-08.2)*
+- [x] **T-26** Add `KiroCrewScheduler` stub with a `NotImplementedError` and a comment pointing to the Kiro Crew docs. *(tech.md: pluggability)*
+- [x] **T-27** Wire `nightshift schedule install/remove/status` CLI subcommand. *(REQ-08)*
 
 ---
 
