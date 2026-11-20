@@ -35,11 +35,14 @@ import logging
 from dataclasses import asdict
 from datetime import date, datetime, timezone
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from jinja2 import Environment, FileSystemLoader
 
-from nightshift.runner import DiffStats, RunEvent, RunLog
+from nightshift.safety import DiffStats
+
+if TYPE_CHECKING:
+    from nightshift.runner import RunEvent, RunLog
 
 logger = logging.getLogger(__name__)
 
@@ -93,6 +96,7 @@ def _event_to_dict(event: RunEvent) -> dict[str, Any]:
 
 
 def _event_from_dict(d: dict[str, Any]) -> RunEvent:
+    from nightshift.runner import RunEvent
     return RunEvent(
         issue_number=d["issue_number"],
         issue_title=d["issue_title"],
@@ -120,6 +124,7 @@ def _run_log_to_dict(run_log: RunLog) -> dict[str, Any]:
 
 
 def _run_log_from_dict(d: dict[str, Any]) -> RunLog:
+    from nightshift.runner import RunLog
     return RunLog(
         date=date.fromisoformat(d["date"]),
         start_time=datetime.fromisoformat(d["start_time"]),
@@ -243,6 +248,7 @@ def quiet_night(for_date: date, diary_dir: Path | None = None) -> Path:
         The path to the rendered HTML file.
     """
     now = datetime.now(timezone.utc)
+    from nightshift.runner import RunLog
     empty_log = RunLog(
         date=for_date,
         start_time=now,

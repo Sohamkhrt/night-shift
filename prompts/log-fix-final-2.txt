@@ -1,0 +1,37 @@
+
+[tool] Reading runner.py:1, diary.py:1
+[tool] status: Completed
+The state is clear. I need to:
+1. Replace `diary_module = None` at module level with a real top-level import.
+2. Remove the `global diary_module` and lazy-import block inside `run_all()`.
+3. Confirm `diary.py`'s runtime imports of `RunEvent`/`RunLog` are inside function bodies (they already are — `_event_from_dict` and `_run_log_from_dict` both do `from nightshift.runner import ...` locally).
+
+The `quiet_night` function in `diary.py` uses `RunLog` directly at runtime without importing it — that needs a local import too. Let me check that function body more carefully.
+
+Looking at `diary.py` again: `quiet_night` constructs a `RunLog(...)` but `RunLog` is only imported under `TYPE_CHECKING`. That will break at runtime. I need to add a local import there as well.
+[tool] Editing runner.py
+[tool] status: Completed
+
+[tool] Editing runner.py
+[tool] status: Completed
+Now fix `quiet_night` in `diary.py` — it constructs `RunLog` at runtime but only imports it under `TYPE_CHECKING`:
+[tool] Editing diary.py
+[tool] status: Completed
+Now verify the final state of both files looks correct:
+[tool] Searching for 'diary_module|global diary_module|lazy' in runner.py
+[tool] status: Completed
+
+[tool] Searching for 'from nightshift\.runner|import runner' in diary.py
+[tool] status: Completed
+All four occurrences of `from nightshift.runner import ...` in `diary.py` are inside function bodies (lines 45, 99, 127, 251 — the `TYPE_CHECKING` block plus the three local imports in `_event_from_dict`, `_run_log_from_dict`, and `quiet_night`). No top-level runtime import exists.
+
+Summary of changes:
+
+**`runner.py`**
+- Replaced `diary_module = None` (lazy sentinel) with `from nightshift import diary as diary_module` at the top-level import block.
+- Removed the three-line `from nightshift import diary as _diary` / `global diary_module` / `if diary_module is None:` block from the top of `run_all()`.
+
+**`diary.py`**
+- Added `from nightshift.runner import RunLog` as a local import inside `quiet_night()`, which constructs a `RunLog` at runtime but previously had no runtime import path for it (only the `TYPE_CHECKING` guard).
+
+The cycle is gone because `diary.py` never imports from `runner` at module load time — all its `runner` imports are deferred to function bodies.

@@ -32,7 +32,7 @@ def make_issue(
         number=number,
         title=title,
         body=body,
-        labels=labels or ["night-shift"],
+        labels=["night-shift"] if labels is None else labels,
         created_at=datetime(2024, 1, 1, tzinfo=timezone.utc),
     )
 

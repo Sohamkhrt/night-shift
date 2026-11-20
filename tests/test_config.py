@@ -247,7 +247,7 @@ def config_to_toml(cfg: NightShiftConfig) -> str:
     )
 
 
-@settings(max_examples=50)
+@settings(max_examples=50, deadline=None)
 @given(
     label=_valid_str,
     max_issues=st.integers(min_value=1, max_value=100),

@@ -20,7 +20,7 @@ from nightshift.github import GitHubAuthError, validate_auth
 app = typer.Typer(
     name="nightshift",
     help=(
-        "👻 Night Shift — autonomous overnight GitHub issue agent.\n\n"
+        "Night Shift — autonomous overnight GitHub issue agent.\n\n"
         "Label issues with 'night-shift', go to sleep, wake up to pull requests."
     ),
     no_args_is_help=True,

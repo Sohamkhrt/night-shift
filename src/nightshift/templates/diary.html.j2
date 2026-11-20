@@ -63,12 +63,12 @@
 }
 
 *, *::before, *::after { box-sizing: border-box; }
-html { background: var(--leather-deep); scrollbar-color: var(--brass-lo) var(--leather-deep); }
+html { background: var(--leather); scrollbar-color: var(--brass-lo) var(--leather-deep); }
 body {
   margin: 0;
   color: var(--ink);
   font: 400 1.0625rem/1.6 var(--face-read);
-  background: var(--leather-deep);
+  background: var(--leather);
   -webkit-font-smoothing: antialiased;
 }
 ::selection { background: var(--brass-hi); color: var(--ink); }
@@ -81,21 +81,20 @@ a:hover { text-decoration-thickness: 2px; }
 /* ---------- The key board (frame) ---------- */
 .board {
   padding: 2.25rem 1.25rem 3.5rem;
-  background:
-    radial-gradient(120% 90% at 50% 0%, #1d3d35 0%, var(--leather) 55%, var(--leather-deep) 100%);
+  background: var(--leather);
   color: var(--on-leather);
 }
-.board-inner { max-width: 62rem; margin: 0 auto; }
+.board-inner { max-width: 46rem; margin: 0 auto; }
 .masthead {
   display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between;
   gap: .5rem 2rem; padding-bottom: 1.1rem; border-bottom: 1px solid var(--leather-line);
 }
-.masthead h1 {
+.masthead .brand {
   margin: 0;
   font: 600 1.05rem/1.2 var(--face-label);
   letter-spacing: .28em; text-transform: uppercase; color: var(--brass-hi);
 }
-.masthead h1 span { color: var(--on-leather-2); font-weight: 400; letter-spacing: .2em; }
+.masthead .brand span { color: var(--on-leather-2); font-weight: 400; letter-spacing: .2em; }
 .masthead p { margin: 0; font: 400 .9rem/1.4 var(--face-label); letter-spacing: .06em; color: var(--on-leather-2); }
 .masthead p b { color: var(--on-leather); font-weight: 600; }
 
@@ -104,21 +103,21 @@ a:hover { text-decoration-thickness: 2px; }
   display: flex; flex-wrap: wrap; gap: 1.75rem 1.1rem;
 }
 .hook {
-  position: relative; width: 5.6rem; padding-top: 1.4rem;
+  position: relative; width: 6.2rem; padding-top: 1.4rem;
   display: flex; flex-direction: column; align-items: center;
 }
 .hook::before { /* the brass peg */
   content: ""; position: absolute; top: 0; left: 50%; width: .55rem; height: .55rem; margin-left: -.275rem;
-  border-radius: 50%; background: radial-gradient(circle at 35% 30%, var(--brass-hi), var(--brass-lo));
-  box-shadow: 0 1px 2px rgba(0,0,0,.5);
+  border-radius: 50%; background: var(--brass-lo);
 }
 .tag {
   position: relative; display: flex; flex-direction: column; align-items: center; gap: .3rem;
   width: 100%; padding: 1.15rem .3rem .6rem;
   border-radius: .55rem .55rem 1.4rem 1.4rem;
-  background: linear-gradient(160deg, var(--brass-hi) 0%, var(--brass) 45%, var(--brass-lo) 100%);
+  background: var(--brass);
   color: #2a1f0e; text-decoration: none;
-  box-shadow: 0 6px 14px rgba(0,0,0,.35), inset 0 1px 0 rgba(255,255,255,.35);
+  box-shadow: 0 6px 14px rgba(0,0,0,.35);
+  outline: 1px solid var(--brass-lo); outline-offset: -4px;
   transform-origin: 50% -1.1rem;
   animation: settle 1.6s var(--ease-out) both;
   animation-delay: calc(var(--i, 0) * 70ms);
@@ -130,9 +129,9 @@ a:hover { text-decoration-thickness: 2px; }
 .tag::after { /* the cord up to the peg */
   content: ""; position: absolute; top: -1.15rem; left: 50%; width: 1px; height: 1.55rem; background: var(--brass-lo);
 }
-.tag-no { font: 700 1.3rem/1 var(--face-label); letter-spacing: .02em; font-variant-numeric: tabular-nums; }
-.tag-state { display: flex; align-items: center; gap: .25rem; font: 600 .62rem/1 var(--face-label); letter-spacing: .08em; text-transform: uppercase; white-space: nowrap; }
-.tag:hover { box-shadow: 0 10px 20px rgba(0,0,0,.4), inset 0 1px 0 rgba(255,255,255,.4); }
+.tag-no { font: 700 1.4rem/1 var(--face-label); letter-spacing: .02em; font-variant-numeric: tabular-nums; }
+.tag-state { display: flex; align-items: center; gap: .25rem; font: 600 .7rem/1 var(--face-label); letter-spacing: .06em; text-transform: uppercase; white-space: nowrap; }
+.tag:hover { box-shadow: 0 10px 20px rgba(0,0,0,.45); }
 
 /* A card hung on the hook instead of the key: the ghost needs you. */
 .tag.is-needs {
@@ -141,7 +140,7 @@ a:hover { text-decoration-thickness: 2px; }
   outline: 2px solid var(--oxblood); outline-offset: -5px;
 }
 .tag.is-needs::before { background: var(--leather); }
-.tag.is-skipped { opacity: .55; filter: saturate(.4); }
+.tag.is-skipped { background: #8d9a8c; color: #1b2420; outline-color: #6d7a6c; }
 
 @keyframes settle {
   0%   { transform: rotate(-9deg); }
@@ -162,7 +161,7 @@ a:hover { text-decoration-thickness: 2px; }
 .empty-hooks { margin: 2.25rem 0 0; display: flex; gap: 1.1rem; }
 .empty-hooks span {
   width: .55rem; height: .55rem; border-radius: 50%;
-  background: radial-gradient(circle at 35% 30%, var(--brass-hi), var(--brass-lo)); opacity: .7;
+  background: var(--brass-lo);
 }
 
 /* ---------- The handover sheet (reading column) ---------- */
@@ -174,11 +173,8 @@ a:hover { text-decoration-thickness: 2px; }
   box-shadow: 0 24px 60px -20px rgba(0,0,0,.55), 0 2px 6px rgba(0,0,0,.25);
 }
 .letterhead { text-align: center; padding-bottom: 1.4rem; border-bottom: 3px double var(--rule); }
-.letterhead .kind {
-  margin: 0; font: 600 .78rem/1 var(--face-label); letter-spacing: .32em; text-transform: uppercase; color: var(--ink-2);
-}
-.letterhead h2 {
-  margin: .55rem 0 .35rem; font: 600 2.1rem/1.1 var(--face-read); letter-spacing: -.01em; text-wrap: balance;
+.letterhead h1 {
+  margin: 0 0 .35rem; font: 600 2.1rem/1.1 var(--face-read); letter-spacing: -.01em; text-wrap: balance;
 }
 .letterhead .when {
   margin: 0; font: 400 .92rem/1.4 var(--face-label); letter-spacing: .04em; color: var(--ink-2);
@@ -205,7 +201,9 @@ a:hover { text-decoration-thickness: 2px; }
   transition: background-color .6s var(--ease-out);
 }
 .entry:target { background: linear-gradient(90deg, transparent, var(--card-2) 12%, var(--card-2) 88%, transparent); }
+.entry-time .dur { display: block; font-weight: 400; font-size: .8rem; line-height: 1.3; }
 .entry-time {
+  margin: 0;
   font: 600 1rem/1.75 var(--face-label); letter-spacing: .04em; color: var(--ink-2);
   font-variant-numeric: tabular-nums;
 }
@@ -256,7 +254,7 @@ summary:hover { color: var(--ink); }
 pre {
   margin: .6rem 0 0; padding: .9rem 1rem; max-height: 22rem; overflow: auto;
   background: var(--card-2); border-radius: 4px;
-  font: 400 .8rem/1.55 var(--face-code); color: var(--ink); white-space: pre-wrap; overflow-wrap: anywhere;
+  font: 400 .8rem/1.55 var(--face-code); color: var(--ink); white-space: pre;
   scrollbar-color: var(--rule) transparent;
 }
 
@@ -274,12 +272,13 @@ pre {
   body { font-size: 1rem; }
   .board { padding-top: 1.5rem; }
   .hooks { gap: 1.5rem .8rem; }
-  .hook { width: 5.1rem; }
+  .hook { width: 5.6rem; }
   .tag-state { letter-spacing: .04em; }
-  .letterhead h2 { font-size: 1.7rem; }
+  .letterhead h1 { font-size: 1.7rem; }
   .stamp { position: static; display: inline-block; margin-bottom: 1rem; }
   .entry { grid-template-columns: 1fr; }
-  .entry-time { line-height: 1.4; }
+  .entry-time { line-height: 1.4; display: flex; gap: .6rem; align-items: baseline; }
+  .entry-time .dur { display: inline; }
 }
 @media (prefers-reduced-motion: reduce) {
   .tag { animation: none; }
@@ -292,7 +291,7 @@ pre {
 <header class="board">
   <div class="board-inner">
     <div class="masthead">
-      <h1>Night Shift <span>· Ghost Diary</span></h1>
+      <p class="brand">Night Shift <span>· Night Desk Handover</span></p>
       <p>{% if run_log.repo != 'unknown' %}<b>{{ run_log.repo }}</b> · {% endif %}shift {{ run_log.start_time.strftime('%H:%M') }}–{{ run_log.end_time.strftime('%H:%M') }} UTC</p>
     </div>
 
@@ -327,8 +326,7 @@ pre {
   {% endif %}
 
   <div class="letterhead">
-    <p class="kind">Night desk handover</p>
-    <h2>Ghost Diary</h2>
+    <h1>Ghost Diary</h1>
     <p class="when"><time datetime="{{ run_log.date }}">{{ run_log.date.strftime('%A %d %B %Y') if run_log.date.strftime is defined else run_log.date }}</time></p>
   </div>
 
@@ -349,7 +347,7 @@ pre {
     {%- set mins = (event.duration_seconds / 60) | round(0, 'ceil') | int -%}
     {%- set ocls = 'is-needs' if event.outcome in needs_outcomes else ('is-partial' if event.outcome in partial_outcomes else ('is-skipped' if event.outcome == 'skipped' else 'is-fixed')) -%}
     <li class="entry" id="issue-{{ event.issue_number }}" data-outcome="{{ event.outcome }}">
-      <span class="entry-time">{{ '%02d:%02d' | format(((t // 3600) % 24) | int, ((t % 3600) // 60) | int) }}</span>
+      <p class="entry-time">{{ '%02d:%02d' | format(((t // 3600) % 24) | int, ((t % 3600) // 60) | int) }}<span class="dur">{{ mins if mins > 0 else '<1' }} min</span></p>
       <div>
         <h3 class="entry-head"><span class="who">{{ event.ghost_name }}</span> took key <span class="issue">#{{ event.issue_number }}</span>: {{ event.issue_title }}</h3>
         {% if event.note %}<p class="entry-note">{{ event.note }}</p>{% endif %}
@@ -363,7 +361,6 @@ pre {
           {% if event.diff_stats %}
           <li><span class="add">+{{ event.diff_stats.lines_added }}</span> <span class="del">−{{ event.diff_stats.lines_removed }}</span> in {{ event.diff_stats.files_changed }} file{{ '' if event.diff_stats.files_changed == 1 else 's' }}</li>
           {% endif %}
-          <li>{{ mins if mins > 0 else '<1' }} min</li>
         </ul>
         <p class="branch">branch {{ event.branch }}</p>
 

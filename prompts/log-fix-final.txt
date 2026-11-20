@@ -1,0 +1,119 @@
+
+[tool] Creating task list: Fix 4 specific bugs in night-shift project
+[tool] status: Completed
+Let me read all the relevant files first.
+[tool] Reading runner.py:1, diary.py:1, cli.py:1, test_agent.py:1, test_config.py:1
+[tool] status: Completed
+Now let me also check the agent.py file to understand `build_prompt`:
+[tool] Reading agent.py:1
+[tool] status: Completed
+Now I have a clear picture of all 4 bugs. Let me fix them:
+
+**Bug 1:** `diary.py` imports `DiffStats, RunEvent, RunLog` from `runner.py` at the top level, while `runner.py` imports `diary` at the top level — a classic cycle. The fix: move the data classes (`RunEvent`, `RunLog`) out of `runner.py` into `diary.py` itself (which already owns the serialization), or better: move `diary_module` import in runner.py to lazy + use `TYPE_CHECKING` in diary.py. Looking at the code, `diary.py` imports `DiffStats` from `runner.py`, but `DiffStats` is actually defined in `safety.py` (see the import in runner.py: `from nightshift.safety import DiffStats`). So `diary.py` should import from `nightshift.safety` directly, and `RunEvent`/`RunLog` should stay in `runner.py` — but then diary.py can use `TYPE_CHECKING` for the type annotations and import at runtime only what it needs.
+
+Actually the cleanest fix per the bug description: in `runner.py`, make `diary_module = None` at module level and assign it lazily inside `run_all()`. In `diary.py`, import `DiffStats` from `nightshift.safety` instead of `runner`, and import `RunEvent`/`RunLog` only under `TYPE_CHECKING`.
+[tool] Editing runner.py
+[tool] status: Completed
+Now add the `diary_module = None` sentinel right after the imports block (before the logger line):
+[tool] Editing runner.py
+[tool] status: Completed
+Now fix `run_all()` to populate `diary_module` lazily (replace the existing local import inside `run_all`):
+[tool] Editing runner.py
+[tool] status: Completed
+Now fix `diary.py` — replace the runtime import of `DiffStats, RunEvent, RunLog` from `runner` with the right sources, using `TYPE_CHECKING` for the type-only uses:
+[tool] Editing diary.py
+[tool] status: Completed
+`RunEvent` and `RunLog` are used at runtime in `diary.py` for constructing objects, not just for type annotations. Let me check exactly where they're used:
+[tool] Searching for 'RunEvent|RunLog' in diary.py
+[tool] status: Completed
+So `diary.py` uses `RunEvent` and `RunLog` as return types in function signatures AND constructs instances in `_event_from_dict` and `_run_log_from_dict`. Those need runtime access. `TYPE_CHECKING` alone won't work. The right approach: keep the runtime import but make it a **deferred** import inside the functions that need them, so the cycle is broken at module load time.
+[tool] Reading diary.py:76-195
+[tool] status: Completed
+The functions `_event_from_dict` and `_run_log_from_dict` construct `RunEvent` and `RunLog` instances at runtime. The best approach here is to put the runtime import inside those two functions (which are only called when actually loading data, not at module import time). The `TYPE_CHECKING` guard handles the type annotations. Let me update `diary.py`:
+[tool] Editing diary.py
+[tool] status: Completed
+
+[tool] Editing diary.py
+[tool] status: Completed
+Also need to remove the stale `from nightshift.runner import RunEvent, RunLog` line that was left in after my earlier edit (it was line 45 per grep):
+[tool] Reading diary.py:1-55
+[tool] status: Completed
+The import section is clean — the old runtime import is gone, replaced with `TYPE_CHECKING` guard and deferred imports inside the two constructor functions. 
+
+Now let me also remove the unused `from dataclasses import asdict` import while I'm here — actually, let me not do that since the task says "do not change anything else". Let me verify that the stale `from nightshift.runner import RunEvent, RunLog` at the old line 45 position (which was inside a function according to grep) is now handled correctly. The grep showed it was at line 45 — which in the original file was inside `_event_from_dict` as a local import. Let me check that nothing was left:
+[tool] Searching for 'from nightshift\.runner import' in diary.py
+[tool] status: Completed
+Line 45 is still there — that's the original import that was present in the file before my edits. Let me check what's at that location now:
+[tool] Reading diary.py:41-55
+[tool] status: Completed
+Line 45 is the `TYPE_CHECKING` guarded import — that's correct, it won't execute at runtime. The other two at lines 99 and 127 are inside functions. 
+
+Now **Bug 2** — remove emoji from `cli.py`. The emoji are in the `app` Typer constructor's `help` string (`👻`) and in a comment body string in `_post_comment_safe` in runner.py... wait, the bug is specifically about `cli.py`. Let me check exactly:
+[tool] Searching for '[\U0001F000-\U0001FFFF]|[\U00002600-\U000027FF]' in cli.py
+[tool] status: Completed
+Just one emoji — the `👻` in the app help string:
+[tool] Editing cli.py
+[tool] status: Completed
+Now **Bug 3** — `test_agent.py::TestBuildPrompt::test_no_labels_shows_none`. The test calls `make_issue(labels=[])` but the helper does `labels or ["night-shift"]` which replaces `[]` with `["night-shift"]`. Fix: use `None` as the sentinel default and only substitute the default when `labels is None`:
+[tool] Editing test_agent.py
+[tool] status: Completed
+The `build_prompt` in `agent.py` already handles empty labels correctly — `", ".join(issue.labels) if issue.labels else "(none)"` — so an empty list produces `"(none)"`. That's already correct. No change needed in `agent.py`.
+
+Now **Bug 4** — add `deadline=None` to `@settings` on `test_round_trip`:
+[tool] Editing test_config.py
+[tool] status: Completed
+Now let me verify all four changes look right:
+[tool] Reading runner.py:1-60
+[tool] status: Completed
+
+[tool] Searching for 'diary' in runner.py
+[tool] status: Completed
+
+[tool] Searching for 'from nightshift import diary|diary_module\.(save|render)|...' in runner.py
+[tool] status: Completed
+
+[tool] Reading runner.py:385-394
+[tool] status: Completed
+All four fixes are in place. Let me do a final check on each file's key changed lines:
+[tool] Reading cli.py:21-30
+[tool] status: Completed
+
+[tool] Reading test_agent.py:21-35
+[tool] status: Completed
+
+[tool] Searching for '@settings' in test_config.py
+[tool] status: Completed
+All four bugs are fixed. Let me mark the tasks complete and summarize:
+[tool] Completing #1, #2, #3, #4
+[tool] status: Completed
+Here's what was changed and why for each bug:
+
+---
+
+**Bug 1 — circular import** (`runner.py` ↔ `diary.py`)
+
+- `runner.py`: removed the top-level `from nightshift import diary as diary_module`. Added `diary_module = None` at module level as a sentinel. Inside `run_all()`, added a lazy import that sets the global on first call.
+- `diary.py`: replaced the top-level `from nightshift.runner import DiffStats, RunEvent, RunLog` with:
+  - `from nightshift.safety import DiffStats` — `DiffStats` was always defined in `safety.py`, this was the wrong source.
+  - `if TYPE_CHECKING: from nightshift.runner import RunEvent, RunLog` — satisfies type checkers without executing at import time.
+  - Deferred `from nightshift.runner import RunEvent` / `RunLog` inside `_event_from_dict` and `_run_log_from_dict` — the only places that construct these objects at runtime.
+
+This breaks the cycle so `import nightshift.runner`, `import nightshift.diary`, and `import nightshift.cli` all work in any order.
+
+---
+
+**Bug 2 — `UnicodeEncodeError` on Windows** (`cli.py`)
+
+Removed the `👻` from the Typer app `help=` string. The rest of the help text is ASCII-safe.
+
+---
+
+**Bug 3 — `test_no_labels_shows_none`** (`tests/test_agent.py`)
+
+Changed `labels or ["night-shift"]` to `["night-shift"] if labels is None else labels`. The old expression replaced an empty list (falsy) with the default; the new one only substitutes when the caller passed nothing at all, so `make_issue(labels=[])` now correctly produces an `Issue` with an empty labels list, and `build_prompt` returns `"(none)"` as expected.
+
+---
+
+**Bug 4 — `DeadlineExceeded` in `test_round_trip`** (`tests/test_config.py`)
+
+Added `deadline=None` to `@settings(max_examples=50, ...)`. The test writes temp files on each example; the default 200ms Hypothesis deadline is too tight for that I/O.

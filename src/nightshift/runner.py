@@ -37,7 +37,6 @@ from datetime import date, datetime, timezone
 from typing import Literal
 
 from nightshift import agent as agent_module
-from nightshift import diary as diary_module
 from nightshift import github as github_module
 from nightshift.config import NightShiftConfig
 from nightshift.github import Issue
@@ -49,6 +48,7 @@ from nightshift.safety import (
     make_branch_name,
     prepare_branch,
 )
+from nightshift import diary as diary_module
 from nightshift.shell import ShellError, run as shell_run
 
 logger = logging.getLogger(__name__)
@@ -382,8 +382,6 @@ def run_all(config: NightShiftConfig) -> RunLog:
     -------
     RunLog
     """
-    from nightshift import diary as diary_module
-
     start_time = datetime.now(timezone.utc)
 
     # Repo name (best-effort; fall back to "unknown")
