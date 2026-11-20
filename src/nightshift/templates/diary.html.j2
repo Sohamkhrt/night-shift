@@ -1,341 +1,400 @@
+{#- Ghost Diary: the night desk handover sheet. Self-contained: no external assets. -#}
+{%- set needs_outcomes = ['test_failed', 'agent_error'] -%}
+{%- set partial_outcomes = ['timeout', 'over_limit'] -%}
+{%- set n_prs = run_log.events | selectattr('outcome', 'equalto', 'pr_opened') | list | length -%}
+{%- set n_needs = run_log.events | selectattr('outcome', 'in', needs_outcomes) | list | length -%}
+{%- set n_partial = run_log.events | selectattr('outcome', 'in', partial_outcomes) | list | length -%}
+{%- set n_skipped = run_log.events | selectattr('outcome', 'equalto', 'skipped') | list | length -%}
+{%- set labels = {
+  'pr_opened':   'Pull request opened',
+  'test_failed': 'Needs you: tests failed',
+  'agent_error': 'Needs you: the ghost hit an error',
+  'timeout':     'Ran out of time',
+  'over_limit':  'Too big for one night',
+  'skipped':     'Left on the hook',
+} -%}
+{%- set short = {
+  'pr_opened': 'fixed', 'test_failed': 'needs you', 'agent_error': 'needs you',
+  'timeout': 'unfinished', 'over_limit': 'unfinished', 'skipped': 'skipped',
+} -%}
+{%- macro mark(outcome, size=14) -%}
+<svg class="mark mark-{{ outcome }}" width="{{ size }}" height="{{ size }}" viewBox="0 0 16 16" aria-hidden="true" focusable="false">
+  {%- if outcome == 'pr_opened' -%}
+  <circle cx="8" cy="8" r="6" fill="currentColor"/>
+  {%- elif outcome in needs_outcomes -%}
+  <path d="M3.5 3.5l9 9M12.5 3.5l-9 9" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" fill="none"/>
+  {%- elif outcome in partial_outcomes -%}
+  <circle cx="8" cy="8" r="5.6" stroke="currentColor" stroke-width="1.8" fill="none"/><path d="M8 2.4a5.6 5.6 0 0 1 0 11.2z" fill="currentColor"/>
+  {%- else -%}
+  <circle cx="8" cy="8" r="5.6" stroke="currentColor" stroke-width="1.8" fill="none"/>
+  {%- endif -%}
+</svg>
+{%- endmacro -%}
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>👻 Ghost Diary — {{ run_log.date }}</title>
-  <style>
-    /* ------------------------------------------------------------------ */
-    /* Base                                                                 */
-    /* ------------------------------------------------------------------ */
-    *, *::before, *::after { box-sizing: border-box; }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ghost Diary · {{ run_log.date }}</title>
+<style>
+:root {
+  --leather:      #16302a;
+  --leather-deep: #0f231e;
+  --leather-line: #2a4a41;
+  --on-leather:   #d9cfb8;
+  --on-leather-2: #a9b8a8;
+  --brass:        #b08d57;
+  --brass-hi:     #d8b980;
+  --brass-lo:     #7d6236;
+  --card:         #f4efe3;
+  --card-2:       #ebe3d1;
+  --rule:         #d6cbb2;
+  --ink:          #1d1b18;
+  --ink-2:        #57503f;
+  --oxblood:      #7a1f2b;
+  --oxblood-tint: #f1dcd8;
+  --moss:         #2f5a3c;
+  --amber:        #8a5a12;
 
-    :root {
-      --bg:        #0d0d1a;
-      --surface:   #161628;
-      --border:    #2a2a44;
-      --text:      #cdd6f4;
-      --muted:     #7c7fa8;
-      --accent:    #a78bfa;
-      --green:     #a6e3a1;
-      --yellow:    #f9e2af;
-      --red:       #f38ba8;
-      --blue:      #89b4fa;
-      --orange:    #fab387;
-      --teal:      #94e2d5;
-      --font-mono: "SFMono-Regular", "Consolas", "Liberation Mono", monospace;
-      --font-sans: "Segoe UI", "Inter", "Helvetica Neue", sans-serif;
-      --radius:    8px;
-    }
+  --face-read:  "Iowan Old Style", "Palatino Linotype", Palatino, "Book Antiqua", Georgia, serif;
+  --face-label: Bahnschrift, "DIN Alternate", "DIN Condensed", "Roboto Condensed", "Arial Narrow", sans-serif;
+  --face-code:  ui-monospace, "Cascadia Mono", Consolas, "SFMono-Regular", Menlo, monospace;
+  --ease-out: cubic-bezier(.16, 1, .3, 1);
+}
 
-    html, body {
-      margin: 0; padding: 0;
-      background: var(--bg);
-      color: var(--text);
-      font-family: var(--font-sans);
-      font-size: 15px;
-      line-height: 1.6;
-    }
+*, *::before, *::after { box-sizing: border-box; }
+html { background: var(--leather-deep); scrollbar-color: var(--brass-lo) var(--leather-deep); }
+body {
+  margin: 0;
+  color: var(--ink);
+  font: 400 1.0625rem/1.6 var(--face-read);
+  background: var(--leather-deep);
+  -webkit-font-smoothing: antialiased;
+}
+::selection { background: var(--brass-hi); color: var(--ink); }
+a { color: var(--moss); text-underline-offset: .2em; text-decoration-thickness: 1px; }
+a:hover { text-decoration-thickness: 2px; }
+:focus-visible { outline: 2px solid var(--brass-hi); outline-offset: 3px; border-radius: 2px; }
+.sheet :focus-visible { outline-color: var(--moss); }
+.mark { flex: none; vertical-align: -2px; }
 
-    a { color: var(--accent); }
-    a:hover { color: #c4b5fd; }
+/* ---------- The key board (frame) ---------- */
+.board {
+  padding: 2.25rem 1.25rem 3.5rem;
+  background:
+    radial-gradient(120% 90% at 50% 0%, #1d3d35 0%, var(--leather) 55%, var(--leather-deep) 100%);
+  color: var(--on-leather);
+}
+.board-inner { max-width: 62rem; margin: 0 auto; }
+.masthead {
+  display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between;
+  gap: .5rem 2rem; padding-bottom: 1.1rem; border-bottom: 1px solid var(--leather-line);
+}
+.masthead h1 {
+  margin: 0;
+  font: 600 1.05rem/1.2 var(--face-label);
+  letter-spacing: .28em; text-transform: uppercase; color: var(--brass-hi);
+}
+.masthead h1 span { color: var(--on-leather-2); font-weight: 400; letter-spacing: .2em; }
+.masthead p { margin: 0; font: 400 .9rem/1.4 var(--face-label); letter-spacing: .06em; color: var(--on-leather-2); }
+.masthead p b { color: var(--on-leather); font-weight: 600; }
 
-    /* ------------------------------------------------------------------ */
-    /* Layout                                                               */
-    /* ------------------------------------------------------------------ */
-    .page { max-width: 860px; margin: 0 auto; padding: 2rem 1.5rem 4rem; }
+.hooks {
+  list-style: none; margin: 0; padding: 2.25rem 0 0;
+  display: flex; flex-wrap: wrap; gap: 1.75rem 1.1rem;
+}
+.hook {
+  position: relative; width: 5.6rem; padding-top: 1.4rem;
+  display: flex; flex-direction: column; align-items: center;
+}
+.hook::before { /* the brass peg */
+  content: ""; position: absolute; top: 0; left: 50%; width: .55rem; height: .55rem; margin-left: -.275rem;
+  border-radius: 50%; background: radial-gradient(circle at 35% 30%, var(--brass-hi), var(--brass-lo));
+  box-shadow: 0 1px 2px rgba(0,0,0,.5);
+}
+.tag {
+  position: relative; display: flex; flex-direction: column; align-items: center; gap: .3rem;
+  width: 100%; padding: 1.15rem .3rem .6rem;
+  border-radius: .55rem .55rem 1.4rem 1.4rem;
+  background: linear-gradient(160deg, var(--brass-hi) 0%, var(--brass) 45%, var(--brass-lo) 100%);
+  color: #2a1f0e; text-decoration: none;
+  box-shadow: 0 6px 14px rgba(0,0,0,.35), inset 0 1px 0 rgba(255,255,255,.35);
+  transform-origin: 50% -1.1rem;
+  animation: settle 1.6s var(--ease-out) both;
+  animation-delay: calc(var(--i, 0) * 70ms);
+}
+.tag::before { /* the ring hole */
+  content: ""; position: absolute; top: .4rem; left: 50%; width: .5rem; height: .5rem; margin-left: -.25rem;
+  border-radius: 50%; background: var(--leather-deep); box-shadow: inset 0 1px 1px rgba(0,0,0,.6);
+}
+.tag::after { /* the cord up to the peg */
+  content: ""; position: absolute; top: -1.15rem; left: 50%; width: 1px; height: 1.55rem; background: var(--brass-lo);
+}
+.tag-no { font: 700 1.3rem/1 var(--face-label); letter-spacing: .02em; font-variant-numeric: tabular-nums; }
+.tag-state { display: flex; align-items: center; gap: .25rem; font: 600 .62rem/1 var(--face-label); letter-spacing: .08em; text-transform: uppercase; white-space: nowrap; }
+.tag:hover { box-shadow: 0 10px 20px rgba(0,0,0,.4), inset 0 1px 0 rgba(255,255,255,.4); }
 
-    /* ------------------------------------------------------------------ */
-    /* Header                                                               */
-    /* ------------------------------------------------------------------ */
-    .diary-header {
-      border-bottom: 1px solid var(--border);
-      margin-bottom: 2rem;
-      padding-bottom: 1.5rem;
-      text-align: center;
-    }
+/* A card hung on the hook instead of the key: the ghost needs you. */
+.tag.is-needs {
+  background: var(--card); color: var(--oxblood);
+  border-radius: .2rem; box-shadow: 0 6px 14px rgba(0,0,0,.35);
+  outline: 2px solid var(--oxblood); outline-offset: -5px;
+}
+.tag.is-needs::before { background: var(--leather); }
+.tag.is-skipped { opacity: .55; filter: saturate(.4); }
 
-    .diary-header h1 {
-      font-size: 2rem;
-      font-weight: 700;
-      margin: 0 0 .4rem;
-      letter-spacing: .02em;
-    }
+@keyframes settle {
+  0%   { transform: rotate(-9deg); }
+  35%  { transform: rotate(5deg); }
+  65%  { transform: rotate(-2deg); }
+  100% { transform: rotate(0deg); }
+}
 
-    .diary-header .subtitle {
-      color: var(--muted);
-      font-size: .9rem;
-      margin: 0 0 1.2rem;
-    }
+.legend {
+  display: flex; flex-wrap: wrap; gap: .4rem 1.4rem; margin: 2rem 0 0; padding: 0; list-style: none;
+  font: 400 .82rem/1.3 var(--face-label); letter-spacing: .05em; color: var(--on-leather-2);
+}
+.legend li { display: flex; align-items: center; gap: .45rem; }
+.legend .mark-pr_opened { color: var(--brass-hi); }
+.legend .mark-test_failed { color: #e7a4a0; }
+.legend .mark-timeout, .legend .mark-skipped { color: var(--on-leather); }
 
-    .run-stats {
-      display: flex;
-      flex-wrap: wrap;
-      justify-content: center;
-      gap: .8rem 2rem;
-      font-size: .88rem;
-    }
+.empty-hooks { margin: 2.25rem 0 0; display: flex; gap: 1.1rem; }
+.empty-hooks span {
+  width: .55rem; height: .55rem; border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, var(--brass-hi), var(--brass-lo)); opacity: .7;
+}
 
-    .run-stats .stat { display: flex; flex-direction: column; align-items: center; }
-    .run-stats .stat-value { font-size: 1.5rem; font-weight: 700; color: var(--accent); }
-    .run-stats .stat-label { color: var(--muted); font-size: .78rem; text-transform: uppercase; letter-spacing: .06em; }
+/* ---------- The handover sheet (reading column) ---------- */
+.sheet {
+  position: relative;
+  max-width: 46rem; margin: -1.75rem auto 4rem; padding: 2.75rem clamp(1.25rem, 5vw, 3.5rem) 2.5rem;
+  background: var(--card);
+  border-radius: 3px;
+  box-shadow: 0 24px 60px -20px rgba(0,0,0,.55), 0 2px 6px rgba(0,0,0,.25);
+}
+.letterhead { text-align: center; padding-bottom: 1.4rem; border-bottom: 3px double var(--rule); }
+.letterhead .kind {
+  margin: 0; font: 600 .78rem/1 var(--face-label); letter-spacing: .32em; text-transform: uppercase; color: var(--ink-2);
+}
+.letterhead h2 {
+  margin: .55rem 0 .35rem; font: 600 2.1rem/1.1 var(--face-read); letter-spacing: -.01em; text-wrap: balance;
+}
+.letterhead .when {
+  margin: 0; font: 400 .92rem/1.4 var(--face-label); letter-spacing: .04em; color: var(--ink-2);
+  font-variant-numeric: tabular-nums;
+}
+.stamp {
+  position: absolute; top: 1.4rem; right: 1.2rem; transform: rotate(8deg);
+  padding: .35rem .6rem; border: 2px solid var(--oxblood); border-radius: 4px; color: var(--oxblood);
+  font: 700 .72rem/1.15 var(--face-label); letter-spacing: .14em; text-transform: uppercase; text-align: center;
+  opacity: .85; mix-blend-mode: multiply;
+}
 
-    /* ------------------------------------------------------------------ */
-    /* Issue cards                                                          */
-    /* ------------------------------------------------------------------ */
-    .cards { display: flex; flex-direction: column; gap: 1.5rem; }
+.totals {
+  margin: 1.4rem 0 0; font-size: 1.12rem; line-height: 1.5; text-wrap: pretty;
+}
+.totals strong { font-weight: 700; }
+.totals .needs { color: var(--oxblood); }
 
-    .card {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      padding: 1.25rem 1.5rem;
-    }
+.entries { list-style: none; margin: 2rem 0 0; padding: 0; }
+.entry {
+  display: grid; grid-template-columns: 4.25rem 1fr; gap: 0 1.1rem;
+  padding: 1.5rem 0; border-top: 1px solid var(--rule);
+  scroll-margin-top: 1.5rem;
+  transition: background-color .6s var(--ease-out);
+}
+.entry:target { background: linear-gradient(90deg, transparent, var(--card-2) 12%, var(--card-2) 88%, transparent); }
+.entry-time {
+  font: 600 1rem/1.75 var(--face-label); letter-spacing: .04em; color: var(--ink-2);
+  font-variant-numeric: tabular-nums;
+}
+.entry-head { margin: 0; font-size: 1.12rem; line-height: 1.45; font-weight: 400; text-wrap: pretty; }
+.entry-head .who { font-weight: 700; }
+.entry-head .issue { font-weight: 700; }
+.entry-note {
+  margin: .5rem 0 0; font-style: italic; color: var(--ink-2); max-width: 62ch;
+}
+.entry-note::before { content: "\201C"; }
+.entry-note::after { content: "\201D"; }
 
-    .card-header {
-      display: flex;
-      align-items: flex-start;
-      gap: 1rem;
-      flex-wrap: wrap;
-      margin-bottom: .8rem;
-    }
+.proof {
+  display: flex; flex-wrap: wrap; align-items: center; gap: .45rem 1.15rem;
+  margin: .9rem 0 0; padding: 0; list-style: none;
+  font: 500 .88rem/1.35 var(--face-label); letter-spacing: .03em; font-variant-numeric: tabular-nums; color: var(--ink-2);
+}
+.proof li { display: inline-flex; align-items: center; gap: .4rem; }
+.outcome { font-weight: 700; color: var(--ink); }
+.outcome .mark-pr_opened { color: var(--moss); }
+.outcome.is-needs { color: var(--oxblood); }
+.outcome.is-partial { color: var(--amber); }
+.outcome.is-skipped { color: var(--ink-2); }
+.pr {
+  display: inline-flex; align-items: center; gap: .4rem;
+  padding: .3rem .75rem; border-radius: 999px; background: var(--moss); color: var(--card);
+  font-weight: 700; text-decoration: none;
+}
+.pr:hover { background: #24472f; }
+.pr svg { flex: none; }
+.add { color: var(--moss); }
+.del { color: var(--oxblood); }
+.branch { margin: .45rem 0 0; font: 400 .8rem/1.35 var(--face-code); color: var(--ink-2); overflow-wrap: anywhere; }
+.entry > div { min-width: 0; }
 
-    .ghost-avatar {
-      font-size: 2rem;
-      line-height: 1;
-      flex-shrink: 0;
-    }
+details { margin: .9rem 0 0; }
+summary {
+  cursor: pointer; display: inline-flex; align-items: center; gap: .4rem; list-style: none;
+  font: 600 .8rem/1.3 var(--face-label); letter-spacing: .1em; text-transform: uppercase; color: var(--ink-2);
+}
+summary::-webkit-details-marker { display: none; }
+summary::before {
+  content: ""; width: .45rem; height: .45rem; border-right: 1.5px solid currentColor; border-bottom: 1.5px solid currentColor;
+  transform: rotate(-45deg); transition: transform .25s var(--ease-out);
+}
+details[open] summary::before { transform: rotate(45deg); }
+summary:hover { color: var(--ink); }
+pre {
+  margin: .6rem 0 0; padding: .9rem 1rem; max-height: 22rem; overflow: auto;
+  background: var(--card-2); border-radius: 4px;
+  font: 400 .8rem/1.55 var(--face-code); color: var(--ink); white-space: pre-wrap; overflow-wrap: anywhere;
+  scrollbar-color: var(--rule) transparent;
+}
 
-    .card-title { flex: 1; min-width: 0; }
-    .card-title h2 {
-      font-size: 1rem;
-      font-weight: 600;
-      margin: 0 0 .2rem;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-    .card-title h2 a { color: var(--text); text-decoration: none; }
-    .card-title h2 a:hover { color: var(--accent); }
+.quiet { text-align: center; padding: 2.5rem 0 1rem; }
+.quiet h3 { margin: 0 0 .5rem; font-size: 1.5rem; font-weight: 600; }
+.quiet p { margin: 0 auto; max-width: 44ch; color: var(--ink-2); }
 
-    .card-meta {
-      font-size: .8rem;
-      color: var(--muted);
-      display: flex;
-      flex-wrap: wrap;
-      gap: .4rem .8rem;
-    }
+.signoff {
+  margin: 2rem 0 0; padding-top: 1.25rem; border-top: 3px double var(--rule);
+  display: flex; flex-wrap: wrap; justify-content: space-between; gap: .5rem 1.5rem;
+  font: 400 .82rem/1.4 var(--face-label); letter-spacing: .05em; color: var(--ink-2);
+}
 
-    /* Outcome badges */
-    .badge {
-      display: inline-block;
-      padding: .15rem .55rem;
-      border-radius: 20px;
-      font-size: .75rem;
-      font-weight: 600;
-      white-space: nowrap;
-      text-transform: uppercase;
-      letter-spacing: .05em;
-    }
-    .badge-pr_opened   { background: #1a3a1a; color: var(--green);  border: 1px solid #2a5a2a; }
-    .badge-test_failed { background: #3a2a0a; color: var(--yellow); border: 1px solid #5a420a; }
-    .badge-timeout     { background: #3a1a1a; color: var(--red);    border: 1px solid #5a2a2a; }
-    .badge-over_limit  { background: #3a1f0a; color: var(--orange); border: 1px solid #5a3010; }
-    .badge-skipped     { background: #1a1a2a; color: var(--blue);   border: 1px solid #2a2a4a; }
-    .badge-agent_error { background: #1a1a2a; color: var(--muted);  border: 1px solid var(--border); }
-
-    /* Note */
-    .card-note {
-      font-style: italic;
-      color: var(--muted);
-      font-size: .88rem;
-      border-left: 3px solid var(--border);
-      padding-left: .75rem;
-      margin: .75rem 0;
-    }
-
-    /* Diff stats */
-    .diff-stats {
-      display: flex;
-      gap: 1rem;
-      font-size: .8rem;
-      color: var(--muted);
-      flex-wrap: wrap;
-      margin: .4rem 0;
-    }
-    .diff-added   { color: var(--green); }
-    .diff-removed { color: var(--red); }
-
-    /* Collapsible code block */
-    details {
-      margin-top: .75rem;
-      border: 1px solid var(--border);
-      border-radius: 6px;
-      overflow: hidden;
-    }
-    details summary {
-      cursor: pointer;
-      padding: .4rem .75rem;
-      background: #1e1e30;
-      font-size: .8rem;
-      color: var(--muted);
-      user-select: none;
-    }
-    details summary:hover { color: var(--text); }
-    details pre {
-      margin: 0;
-      padding: .75rem 1rem;
-      font-family: var(--font-mono);
-      font-size: .78rem;
-      line-height: 1.5;
-      overflow-x: auto;
-      background: var(--bg);
-      color: var(--text);
-      white-space: pre-wrap;
-      word-break: break-all;
-    }
-
-    /* PR link */
-    .pr-link {
-      display: inline-block;
-      margin-top: .5rem;
-      font-size: .85rem;
-      background: #1a2a3a;
-      border: 1px solid #2a4a5a;
-      border-radius: 20px;
-      padding: .15rem .75rem;
-      color: var(--blue);
-      text-decoration: none;
-    }
-    .pr-link:hover { background: #223344; }
-
-    /* ------------------------------------------------------------------ */
-    /* Quiet night                                                          */
-    /* ------------------------------------------------------------------ */
-    .quiet-night {
-      text-align: center;
-      padding: 4rem 2rem;
-      color: var(--muted);
-    }
-    .quiet-night .big-ghost { font-size: 5rem; display: block; margin-bottom: 1rem; }
-    .quiet-night h2 { color: var(--text); margin: 0 0 .5rem; }
-
-    /* ------------------------------------------------------------------ */
-    /* Footer                                                               */
-    /* ------------------------------------------------------------------ */
-    .diary-footer {
-      margin-top: 3rem;
-      border-top: 1px solid var(--border);
-      padding-top: 1rem;
-      text-align: center;
-      font-size: .78rem;
-      color: var(--muted);
-    }
-  </style>
+@media (max-width: 34rem) {
+  body { font-size: 1rem; }
+  .board { padding-top: 1.5rem; }
+  .hooks { gap: 1.5rem .8rem; }
+  .hook { width: 5.1rem; }
+  .tag-state { letter-spacing: .04em; }
+  .letterhead h2 { font-size: 1.7rem; }
+  .stamp { position: static; display: inline-block; margin-bottom: 1rem; }
+  .entry { grid-template-columns: 1fr; }
+  .entry-time { line-height: 1.4; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .tag { animation: none; }
+  .entry { transition: none; }
+}
+</style>
 </head>
 <body>
-<div class="page">
 
-  <!-- ================================================================== -->
-  <!-- Header                                                               -->
-  <!-- ================================================================== -->
-  <header class="diary-header">
-    <h1>👻 Ghost Diary</h1>
-    <p class="subtitle">{{ run_log.date }}{% if run_log.dry_run %} &mdash; <strong>dry run</strong>{% endif %}</p>
-
-    <div class="run-stats">
-      <div class="stat">
-        <span class="stat-value">{{ run_log.total_issues }}</span>
-        <span class="stat-label">Issues tackled</span>
-      </div>
-      <div class="stat">
-        <span class="stat-value">{{ run_log.total_prs }}</span>
-        <span class="stat-label">PRs opened</span>
-      </div>
-      <div class="stat">
-        <span class="stat-value">{{ run_log.start_time.strftime('%H:%M') }}</span>
-        <span class="stat-label">Started (UTC)</span>
-      </div>
-      <div class="stat">
-        <span class="stat-value">{{ run_log.end_time.strftime('%H:%M') }}</span>
-        <span class="stat-label">Finished (UTC)</span>
-      </div>
-      {% if run_log.repo != 'unknown' %}
-      <div class="stat">
-        <span class="stat-value" style="font-size:.95rem;">{{ run_log.repo }}</span>
-        <span class="stat-label">Repository</span>
-      </div>
-      {% endif %}
+<header class="board">
+  <div class="board-inner">
+    <div class="masthead">
+      <h1>Night Shift <span>· Ghost Diary</span></h1>
+      <p>{% if run_log.repo != 'unknown' %}<b>{{ run_log.repo }}</b> · {% endif %}shift {{ run_log.start_time.strftime('%H:%M') }}–{{ run_log.end_time.strftime('%H:%M') }} UTC</p>
     </div>
-  </header>
 
-  <!-- ================================================================== -->
-  <!-- Issue cards                                                          -->
-  <!-- ================================================================== -->
-  {% if run_log.events %}
-  <div class="cards">
-    {% for event in run_log.events %}
-    <div class="card">
-      <div class="card-header">
-        <div class="ghost-avatar">👻</div>
-        <div class="card-title">
-          <h2>#{{ event.issue_number }}: {{ event.issue_title }}</h2>
-          <div class="card-meta">
-            <span>🔮 {{ event.ghost_name }}</span>
-            <span>🌿 <code>{{ event.branch }}</code></span>
-            <span>⏱ {{ "%.0f"|format(event.duration_seconds) }}s</span>
-          </div>
-        </div>
-        <span class="badge badge-{{ event.outcome }}">{{ event.outcome | replace("_", " ") }}</span>
-      </div>
+    {% if run_log.events %}
+    <ol class="hooks" aria-label="Key board: one tag per issue">
+      {% for event in run_log.events %}
+      {%- set cls = 'is-needs' if event.outcome in needs_outcomes else ('is-partial' if event.outcome in partial_outcomes else ('is-skipped' if event.outcome == 'skipped' else 'is-fixed')) -%}
+      <li class="hook">
+        <a class="tag {{ cls }}" href="#issue-{{ event.issue_number }}" style="--i: {{ loop.index0 }}" data-outcome="{{ event.outcome }}"
+           aria-label="Issue {{ event.issue_number }}: {{ labels.get(event.outcome, event.outcome) }}">
+          <span class="tag-no">{{ event.issue_number }}</span>
+          <span class="tag-state">{{ mark(event.outcome, 11) }} {{ short.get(event.outcome, event.outcome | replace('_', ' ')) }}</span>
+        </a>
+      </li>
+      {% endfor %}
+    </ol>
+    <ul class="legend" aria-label="Legend">
+      <li>{{ mark('pr_opened') }} Key returned: pull request opened</li>
+      <li>{{ mark('test_failed') }} Card on the hook: needs you</li>
+      <li>{{ mark('timeout') }} Unfinished</li>
+      <li>{{ mark('skipped') }} Skipped</li>
+    </ul>
+    {% else %}
+    <div class="empty-hooks" aria-hidden="true">{% for _ in range(6) %}<span></span>{% endfor %}</div>
+    {% endif %}
+  </div>
+</header>
 
-      {% if event.note %}
-      <p class="card-note">"{{ event.note }}"</p>
-      {% endif %}
+<main class="sheet">
+  {% if run_log.dry_run %}
+  <p class="stamp">Dry run<br>nothing pushed</p>
+  {% endif %}
 
-      {% if event.pr_url %}
-      <a class="pr-link" href="{{ event.pr_url }}" target="_blank" rel="noopener">🔗 View Pull Request</a>
-      {% endif %}
-
-      {% if event.diff_stats %}
-      <div class="diff-stats">
-        <span>📂 {{ event.diff_stats.files_changed }} file{{ 's' if event.diff_stats.files_changed != 1 else '' }}</span>
-        <span class="diff-added">+{{ event.diff_stats.lines_added }}</span>
-        <span class="diff-removed">-{{ event.diff_stats.lines_removed }}</span>
-      </div>
-      {% endif %}
-
-      {% if event.test_output %}
-      <details>
-        <summary>🧪 Test output</summary>
-        <pre>{{ event.test_output }}</pre>
-      </details>
-      {% endif %}
-
-      {% if event.agent_output %}
-      <details>
-        <summary>🤖 Agent output</summary>
-        <pre>{{ event.agent_output }}</pre>
-      </details>
-      {% endif %}
-    </div>
-    {% endfor %}
+  <div class="letterhead">
+    <p class="kind">Night desk handover</p>
+    <h2>Ghost Diary</h2>
+    <p class="when"><time datetime="{{ run_log.date }}">{{ run_log.date.strftime('%A %d %B %Y') if run_log.date.strftime is defined else run_log.date }}</time></p>
   </div>
 
+  {% if run_log.events %}
+  <p class="totals">
+    The night staff took <strong>{{ run_log.total_issues }} issue{{ '' if run_log.total_issues == 1 else 's' }}</strong>.
+    {% if n_prs %}<strong>{{ n_prs }} pull request{{ '' if n_prs == 1 else 's' }}</strong> {{ 'is' if n_prs == 1 else 'are' }} waiting for review.{% endif %}
+    {% if n_needs %}<strong class="needs">{{ n_needs }} need{{ 's' if n_needs == 1 else '' }} you.</strong>{% endif %}
+    {% if n_partial %}{{ n_partial }} {{ 'was' if n_partial == 1 else 'were' }} left unfinished.{% endif %}
+    {% if n_skipped %}{{ n_skipped }} {{ 'was' if n_skipped == 1 else 'were' }} skipped.{% endif %}
+  </p>
+
+  <ol class="entries">
+    {%- set ns = namespace(elapsed=0) -%}
+    {% for event in run_log.events %}
+    {%- set t = run_log.start_time.hour * 3600 + run_log.start_time.minute * 60 + ns.elapsed -%}
+    {%- set ns.elapsed = ns.elapsed + event.duration_seconds -%}
+    {%- set mins = (event.duration_seconds / 60) | round(0, 'ceil') | int -%}
+    {%- set ocls = 'is-needs' if event.outcome in needs_outcomes else ('is-partial' if event.outcome in partial_outcomes else ('is-skipped' if event.outcome == 'skipped' else 'is-fixed')) -%}
+    <li class="entry" id="issue-{{ event.issue_number }}" data-outcome="{{ event.outcome }}">
+      <span class="entry-time">{{ '%02d:%02d' | format(((t // 3600) % 24) | int, ((t % 3600) // 60) | int) }}</span>
+      <div>
+        <h3 class="entry-head"><span class="who">{{ event.ghost_name }}</span> took key <span class="issue">#{{ event.issue_number }}</span>: {{ event.issue_title }}</h3>
+        {% if event.note %}<p class="entry-note">{{ event.note }}</p>{% endif %}
+
+        <ul class="proof">
+          <li class="outcome {{ ocls }}">{{ mark(event.outcome) }} {{ labels.get(event.outcome, event.outcome | replace('_', ' ')) }}</li>
+          {% if event.pr_url %}
+          <li><a class="pr" href="{{ event.pr_url }}" target="_blank" rel="noopener">Review pull request
+            <svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true"><path d="M4 2h6v6M10 2L3 9" stroke="currentColor" stroke-width="1.6" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></a></li>
+          {% endif %}
+          {% if event.diff_stats %}
+          <li><span class="add">+{{ event.diff_stats.lines_added }}</span> <span class="del">−{{ event.diff_stats.lines_removed }}</span> in {{ event.diff_stats.files_changed }} file{{ '' if event.diff_stats.files_changed == 1 else 's' }}</li>
+          {% endif %}
+          <li>{{ mins if mins > 0 else '<1' }} min</li>
+        </ul>
+        <p class="branch">branch {{ event.branch }}</p>
+
+        {% if event.test_output %}
+        <details{% if event.outcome in needs_outcomes %} open{% endif %}>
+          <summary>Test output</summary>
+          <pre>{{ event.test_output }}</pre>
+        </details>
+        {% endif %}
+        {% if event.agent_output %}
+        <details>
+          <summary>What the ghost wrote</summary>
+          <pre>{{ event.agent_output }}</pre>
+        </details>
+        {% endif %}
+      </div>
+    </li>
+    {% endfor %}
+  </ol>
   {% else %}
-  <!-- ================================================================== -->
-  <!-- Quiet night                                                          -->
-  <!-- ================================================================== -->
-  <div class="quiet-night">
-    <span class="big-ghost">👻</span>
-    <h2>A quiet night</h2>
-    <p>No labeled issues were found, so the ghosts drifted back to sleep.</p>
+  <div class="quiet">
+    <h3>A quiet night</h3>
+    <p>No issues were left at the desk with the <code>night-shift</code> label, so the night staff kept the lobby tidy and went home.</p>
   </div>
   {% endif %}
 
-  <footer class="diary-footer">
-    Generated by <strong>Night Shift</strong> &mdash; autonomous overnight GitHub issue agent
+  <footer class="signoff">
+    <span>Handed over by the Night Shift ghosts</span>
+    <span>Nothing was pushed to main.</span>
   </footer>
-</div>
+</main>
+
 </body>
 </html>

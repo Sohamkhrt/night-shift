@@ -15,7 +15,7 @@ from pathlib import Path
 from typing import Literal
 
 import pytest
-from hypothesis import given, settings
+from hypothesis import HealthCheck, given, settings
 from hypothesis import strategies as st
 
 from nightshift.diary import load_log, render, save
@@ -336,7 +336,7 @@ class TestRender:
 # ---------------------------------------------------------------------------
 
 
-@settings(max_examples=100, deadline=None)
+@settings(max_examples=100, deadline=None, suppress_health_check=[HealthCheck.function_scoped_fixture])
 @given(run_log=_RUN_LOG_STRATEGY)
 def test_render_never_raises(run_log: RunLog, tmp_path: Path) -> None:
     """Rendering any arbitrarily constructed RunLog must not raise an exception."""
@@ -371,7 +371,7 @@ def test_ghost_assignment_always_in_roster(issue_number: int, ghost_names: list[
 # ---------------------------------------------------------------------------
 
 
-@settings(max_examples=50, deadline=None)
+@settings(max_examples=50, deadline=None, suppress_health_check=[HealthCheck.function_scoped_fixture])
 @given(
     run_date=st.dates(min_value=date(2024, 1, 1), max_value=date(2030, 12, 31)),
 )

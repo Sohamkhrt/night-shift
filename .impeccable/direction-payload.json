@@ -1,0 +1,124 @@
+{
+  "title": "Choose the look for the Ghost Diary",
+  "question": "The roll assigned The Night Desk Handover. Keep it, take an alternate, or re-roll.",
+  "options": [
+    {
+      "id": "assigned",
+      "kind": "assigned",
+      "label": "The Night Desk Handover",
+      "kicker": "THE ROLL",
+      "lineage": "hotel night-porter handover sheets and the key-and-pigeonhole board behind the front desk",
+      "thesis": "The ghosts are the hotel's night staff; the diary is the handover sheet the morning shift reads at 7 AM, under the key board where every issue hangs as a numbered tag.",
+      "palette": ["#16302a", "#b08d57", "#f4efe3", "#7a1f2b", "#1d1b18"],
+      "materials": ["green desk-blotter leather", "brass key tags", "printed handover card stock", "rubber date stamp"],
+      "viewport": "Top: a dark-green key-board rail with one brass tag per issue, its hook state showing the outcome at a glance (key returned = PR opened, card on hook = needs you). Below: the handover card, a calm ivory reading column with a letterhead (date, repo, shift 01:00 to 01:47), the night totals, then timestamped entries in each ghost's voice. Each entry pairs the note with its evidence: PR link, diff count, test result.",
+      "risk": "Ivory card plus a serif letterhead can slide toward the generic cream-and-serif look; the green rail and brass tags must carry the identity.",
+      "raised": [
+        {"from": "challenger-monochrome", "raise": "Every ghost's claim sits directly beside its proof (PR link, +/- lines, test count), never a note without evidence."},
+        {"from": "challenger-timetable", "raise": "Outcome is a mark in a fixed column (filled, hollow, struck), not only a colour, so it survives greyscale and colour blindness."},
+        {"from": "challenger-binding", "raise": "The key rail shows the night's structure: one tag per issue, so the count of what shipped versus what needs you is visible before reading."}
+      ]
+    },
+    {
+      "id": "model-pick",
+      "kind": "pick",
+      "label": "The Cobbler's Claim Tickets",
+      "kicker": "IMPECCABLE’S PICK",
+      "lineage": "shoe-repair claim stubs: numbered kraft tickets, string, a 'ready for pickup' stamp",
+      "thesis": "The elves and the shoemaker, literally: each issue is a repair ticket, stamped READY overnight.",
+      "palette": ["#c9a46a", "#1c1a17", "#efe7d6", "#9b2c24"],
+      "materials": ["kraft card", "perforated stub", "ink stamp", "string"],
+      "viewport": "A rack of numbered kraft tickets across the top, each stamped with its outcome, above a reading column of the night's notes.",
+      "risk": "It is the literal reading of the product's own metaphor, the first place most runs would go, and kraft-and-stamp leans craft-market."
+    },
+    {
+      "id": "challenger-monochrome",
+      "kind": "challenger",
+      "catalogId": "digital-design-canon-monochrome-product-marketing",
+      "label": "Monochrome Product Canon",
+      "verdict": "declined",
+      "lineage": "neutral-scale software marketing",
+      "palette": ["#0b0b0c", "#f5f5f4", "#6d5dfc"],
+      "materials": ["neutral scale", "framed screenshots"],
+      "case": "Fuses poorly: a morning report is not a marketing page, and it drops the Kiroween theme judges score.",
+      "kept": "Every claim paired with its proof.",
+      "hero": "https://impeccable.style/worlds/cards/digital-design-canon-monochrome-product-marketing-hero.webp"
+    },
+    {
+      "id": "challenger-timetable",
+      "kind": "challenger",
+      "catalogId": "rw-timetable-slide-rack",
+      "label": "Timetable Slide Rack",
+      "verdict": "declined",
+      "lineage": "1971 pocket airline timetable on a light table",
+      "palette": ["#d9a520", "#1d1d1b", "#f3ecd9", "#d6402b", "#2f6b46"],
+      "materials": ["tinted glass slides", "goldenrod stock"],
+      "case": "Fuses poorly: raked containers and one type size slow the five-second morning glance.",
+      "kept": "State as a mark in a fixed cell.",
+      "hero": "https://impeccable.style/worlds/cards/rw-timetable-slide-rack-hero.webp"
+    },
+    {
+      "id": "challenger-cracktro",
+      "kind": "challenger",
+      "catalogId": "operate-c-cracktro-scroller-queue",
+      "label": "Cracktro Scroller",
+      "verdict": "declined",
+      "lineage": "demoscene title screens",
+      "palette": ["#000000", "#e8e2d0", "#ffb000"],
+      "materials": ["bitmap type", "drifting dust"],
+      "case": "Fuses poorly: night-time mood is right, but reading diffs and notes in bitmap type on drifting dust fails clarity.",
+      "kept": "One signal colour used only where action is needed.",
+      "hero": "https://impeccable.style/worlds/cards/operate-c-cracktro-scroller-queue-hero.webp"
+    },
+    {
+      "id": "challenger-cutting-bench",
+      "kind": "challenger",
+      "catalogId": "operate-a-cutting-bench-select-rail",
+      "label": "Cutting Bench Rail",
+      "verdict": "declined",
+      "lineage": "film editing bench",
+      "palette": ["#000000", "#ff6a1a", "#ffffff"],
+      "materials": ["film grain", "perforated rail"],
+      "case": "Fuses poorly: developers don't recognise an editing bench, and orange over a third of the screen fights the report.",
+      "kept": "A flag marks exactly where your attention is needed.",
+      "hero": "https://impeccable.style/worlds/cards/operate-a-cutting-bench-select-rail-hero.webp"
+    },
+    {
+      "id": "challenger-binding",
+      "kind": "challenger",
+      "catalogId": "craft-making-coptic-exposed-binding",
+      "label": "Exposed Coptic Binding",
+      "verdict": "declined",
+      "lineage": "chain-stitched book spines",
+      "palette": ["#8a6a45", "#efe6d2", "#3b2f22"],
+      "materials": ["linen thread", "wooden boards"],
+      "case": "Fuses poorly: lovely, but nothing about a night shift.",
+      "kept": "Structure showing: the count of sections is visible.",
+      "hero": "https://impeccable.style/worlds/cards/craft-making-coptic-exposed-binding-hero.webp"
+    },
+    {
+      "id": "challenger-crease",
+      "kind": "challenger",
+      "catalogId": "paper-folds-pleats-deployable-curved-crease-shell",
+      "label": "Curved Crease Shell",
+      "verdict": "declined",
+      "lineage": "curved-crease paper folding",
+      "palette": ["#efe6d2", "#2b2b2b"],
+      "materials": ["cotton paper", "graphite"],
+      "case": "Fuses poorly: no link to developers, ghosts, or mornings.",
+      "kept": "One governing line organises the page.",
+      "hero": "https://impeccable.style/worlds/cards/paper-folds-pleats-deployable-curved-crease-shell-hero.webp"
+    }
+  ],
+  "reroll": {"registers": ["safer", "bolder"]},
+  "canon": true,
+  "canonCard": {
+    "kind": "canon",
+    "label": "The category standard",
+    "thesis": "A clean dark developer report like GitHub or Linear, done impeccably.",
+    "palette": ["#0d1117", "#e6edf3", "#2f81f7"],
+    "materials": ["clean grid", "status pills"],
+    "viewport": "Summary stats, then a list of issue rows with status pills and PR links.",
+    "risk": "Looks like every dashboard; little Kiroween theme for judges."
+  }
+}
