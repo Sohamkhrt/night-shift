@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import tempfile
 import tomllib
 from pathlib import Path
 
@@ -260,7 +261,6 @@ def config_to_toml(cfg: NightShiftConfig) -> str:
     output_dir=_valid_str,
 )
 def test_round_trip(
-    tmp_path: Path,
     label: str,
     max_issues: int,
     max_minutes: int,
@@ -272,7 +272,12 @@ def test_round_trip(
     ghost_names: list[str],
     output_dir: str,
 ) -> None:
-    """Any valid NightShiftConfig, when serialised to TOML and re-parsed, is equal."""
+    """Any valid NightShiftConfig, when serialised to TOML and re-parsed, is equal.
+
+    Uses tempfile.TemporaryDirectory internally instead of the tmp_path fixture
+    so Hypothesis can safely share the test function across multiple examples
+    without hitting the FailedHealthCheck for function-scoped fixtures.
+    """
     diary = DiaryConfig(ghost_names=ghost_names, output_dir=output_dir)
     original = NightShiftConfig(
         label=label,
@@ -294,9 +299,10 @@ def test_round_trip(
         # If our serializer produced bad TOML for exotic inputs, skip gracefully
         return
 
-    p = tmp_path / "nightshift.toml"
-    p.write_text(toml_text, encoding="utf-8")
-    loaded = load(p)
+    with tempfile.TemporaryDirectory() as tmpdir:
+        p = Path(tmpdir) / "nightshift.toml"
+        p.write_text(toml_text, encoding="utf-8")
+        loaded = load(p)
 
     assert loaded.label == original.label
     assert loaded.max_issues == original.max_issues

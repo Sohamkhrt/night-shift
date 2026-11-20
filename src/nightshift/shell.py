@@ -89,6 +89,13 @@ def run(
     subprocess.TimeoutExpired
         When *timeout* is set and the process exceeds it.
     """
+    if not isinstance(cmd, list):
+        raise TypeError(
+            f"shell.run() requires a list[str] command, got {type(cmd).__name__!r}. "
+            "Pass the command as a list (e.g. ['git', 'status']) to prevent "
+            "shell-injection and cross-platform surprises."
+        )
+
     logger.debug("$ %s  (cwd=%s, timeout=%s)", " ".join(cmd), cwd, timeout)
 
     try:

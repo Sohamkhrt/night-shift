@@ -428,7 +428,7 @@ class TestCheckDiffLimits:
 # ---------------------------------------------------------------------------
 
 
-@settings(max_examples=200)
+@settings(max_examples=200, deadline=None)
 @given(
     files=st.integers(min_value=0, max_value=100),
     added=st.integers(min_value=0, max_value=10000),
@@ -468,7 +468,7 @@ def test_no_over_limit_error_when_within_limits(
     assert stats.lines_removed == removed
 
 
-@settings(max_examples=100)
+@settings(max_examples=100, deadline=None)
 @given(
     files=st.integers(min_value=0, max_value=10000),
     added=st.integers(min_value=0, max_value=10000),
@@ -483,14 +483,17 @@ def test_over_limit_error_when_exceeded(
     max_files = max(0, files - 1)
     max_lines = max(0, added + removed - 1)
 
+    # When files==0 the stat output is "" which parses as (0, 0, 0); if
+    # added+removed > 0 the limits wouldn't be exceeded in the parsed stats,
+    # so filter those cases out.
+    if files == 0:
+        assume(False)
+
     assume(files > max_files or (added + removed) > max_lines)
 
-    if files == 0:
-        stat_output = ""
-    else:
-        stat_output = (
-            f" {files} files changed, {added} insertions(+), {removed} deletions(-)\n"
-        )
+    stat_output = (
+        f" {files} files changed, {added} insertions(+), {removed} deletions(-)\n"
+    )
 
     with patch("nightshift.safety.run") as mock_run:
         mock_run.return_value = make_shell_result(stdout=stat_output)

@@ -83,9 +83,32 @@ def diary(
     ] = None,
 ) -> None:
     """(Re-)render the Ghost Diary HTML from the run log for a given date."""
-    # Phase 5 will wire this to diary.render().
-    typer.echo("nightshift diary — not yet implemented")
-    raise typer.Exit(code=0)
+    import datetime as dt
+
+    from nightshift import diary as diary_module
+
+    if date is not None:
+        try:
+            target_date = dt.date.fromisoformat(date)
+        except ValueError:
+            typer.echo(f"Error: '{date}' is not a valid date (expected YYYY-MM-DD).", err=True)
+            raise typer.Exit(code=1)
+    else:
+        target_date = dt.date.today()
+
+    try:
+        run_log = diary_module.load_log(target_date)
+    except FileNotFoundError:
+        typer.echo(
+            f"No run log found for {target_date}. Generating a quiet-night diary.",
+            err=True,
+        )
+        html_path = diary_module.quiet_night(target_date)
+        typer.echo(f"Quiet night diary written to: {html_path}")
+        return
+
+    html_path = diary_module.render(run_log)
+    typer.echo(f"Ghost Diary written to: {html_path}")
 
 
 # ---------------------------------------------------------------------------

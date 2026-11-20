@@ -141,20 +141,11 @@ class TestRunFailure:
             run(_TIMEOUT_CMD, timeout=1)
 
     def test_accepts_only_list_commands(self) -> None:
-        """run() only accepts a list[str]; passing a plain string is a programmer error.
+        """run() raises TypeError immediately when cmd is not a list.
 
-        We can't guarantee the same exception type on all platforms (Windows vs
-        POSIX differ in how subprocess handles a bare string), but we can
-        verify that the call does *not* silently succeed by asserting either an
-        exception is raised or the result is not a successful ShellResult.
+        Passing a plain string is a programmer error.  The check is enforced
+        before any subprocess is spawned so the behaviour is identical on all
+        platforms (no Windows-vs-POSIX ambiguity).
         """
-        import subprocess
-
-        try:
-            result = run("echo hello")  # type: ignore[arg-type]
-            # If we get here on some platform, the command shouldn't have
-            # succeeded silently — it should at least not capture useful output
-            # the way a list command would.
-            assert result.returncode != 0 or "hello" not in result.stdout
-        except (TypeError, ValueError, OSError, subprocess.SubprocessError):
-            pass  # Any of these is acceptable — the point is it doesn't work
+        with pytest.raises(TypeError):
+            run("echo hello")  # type: ignore[arg-type]

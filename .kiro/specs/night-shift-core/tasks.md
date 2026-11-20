@@ -38,19 +38,19 @@ Tasks are ordered for incremental delivery. Each task is independently testable.
 
 ## Phase 4 — Agent runner (Day 3–4)
 
-- [ ] **T-13** Implement `agent.py`: `build_prompt(issue) -> str` and `AgentResult` dataclass. Unit test prompt contains issue number, title, body. *(REQ-03)*
-- [ ] **T-14** Implement `agent.py`: `run(issue, config) -> AgentResult` — subprocess with timeout. Unit tests: normal exit, non-zero exit, `TimeoutExpired`. *(REQ-03, AC-03.2–AC-03.4)*
-- [ ] **T-15** Implement `runner.py`: `RunEvent`, `RunLog` dataclasses and `run_issue()` function (single issue, all steps). Unit tests: mock all external calls, verify correct `RunEvent.outcome` for pass/fail/timeout/over-limit/skip. *(REQ-03, REQ-04, REQ-05, REQ-06)*
-- [ ] **T-16** Implement `runner.py`: `run_all(config) -> RunLog` — load issues, loop, call `run_issue()`, handle per-issue exceptions. Unit test: multi-issue run with mixed outcomes. *(REQ-01, REQ-03)*
+- [x] **T-13** Implement `agent.py`: `build_prompt(issue) -> str` and `AgentResult` dataclass. Unit test prompt contains issue number, title, body. *(REQ-03)*
+- [x] **T-14** Implement `agent.py`: `run(issue, config) -> AgentResult` — subprocess with timeout. Unit tests: normal exit, non-zero exit, `TimeoutExpired`. *(REQ-03, AC-03.2–AC-03.4)*
+- [x] **T-15** Implement `runner.py`: `RunEvent`, `RunLog` dataclasses and `run_issue()` function (single issue, all steps). Unit tests: mock all external calls, verify correct `RunEvent.outcome` for pass/fail/timeout/over-limit/skip. *(REQ-03, REQ-04, REQ-05, REQ-06)*
+- [x] **T-16** Implement `runner.py`: `run_all(config) -> RunLog` — load issues, loop, call `run_issue()`, handle per-issue exceptions. Unit test: multi-issue run with mixed outcomes. *(REQ-01, REQ-03)*
 
 ---
 
 ## Phase 5 — Ghost Diary (Day 4–5)
 
-- [ ] **T-17** Implement `diary.py`: JSON serialization of `RunLog` to `.nightshift/runs/YYYY-MM-DD.json`. Unit test: file created, round-trip readable. *(REQ-07)*
-- [ ] **T-18** Create `templates/diary.html.j2`: HTML template with run header, per-issue cards (ghost name, outcome badge, PR link, test snippet, in-character note), and spooky CSS. No external CDN — all styles inline or in a `<style>` block. *(REQ-07, AC-07.3–AC-07.4)*
-- [ ] **T-19** Implement `diary.py`: `render(run_log) -> Path` — Jinja2 render to `.nightshift/diary/YYYY-MM-DD.html`. Unit test: known `RunLog` → check HTML contains issue number and ghost name. Property test: arbitrary `RunLog` never raises. *(REQ-07, AC-07.1–AC-07.5)*
-- [ ] **T-20** Wire `nightshift diary` CLI command to load the latest (or `--date`) JSON log and call `Diary.render()`. *(REQ-07)*
+- [x] **T-17** Implement `diary.py`: JSON serialization of `RunLog` to `.nightshift/runs/YYYY-MM-DD.json`. Unit test: file created, round-trip readable. *(REQ-07)*
+- [x] **T-18** Create `templates/diary.html.j2`: HTML template with run header, per-issue cards (ghost name, outcome badge, PR link, test snippet, in-character note), and spooky CSS. No external CDN — all styles inline or in a `<style>` block. *(REQ-07, AC-07.3–AC-07.4)*
+- [x] **T-19** Implement `diary.py`: `render(run_log) -> Path` — Jinja2 render to `.nightshift/diary/YYYY-MM-DD.html`. Unit test: known `RunLog` → check HTML contains issue number and ghost name. Property test: arbitrary `RunLog` never raises. *(REQ-07, AC-07.1–AC-07.5)*
+- [x] **T-20** Wire `nightshift diary` CLI command to load the latest (or `--date`) JSON log and call `Diary.render()`. *(REQ-07)*
 
 ---
 

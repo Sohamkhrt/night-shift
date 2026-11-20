@@ -1,1 +1,341 @@
-{# diary.html.j2 — Ghost Diary HTML template (placeholder) #}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>👻 Ghost Diary — {{ run_log.date }}</title>
+  <style>
+    /* ------------------------------------------------------------------ */
+    /* Base                                                                 */
+    /* ------------------------------------------------------------------ */
+    *, *::before, *::after { box-sizing: border-box; }
+
+    :root {
+      --bg:        #0d0d1a;
+      --surface:   #161628;
+      --border:    #2a2a44;
+      --text:      #cdd6f4;
+      --muted:     #7c7fa8;
+      --accent:    #a78bfa;
+      --green:     #a6e3a1;
+      --yellow:    #f9e2af;
+      --red:       #f38ba8;
+      --blue:      #89b4fa;
+      --orange:    #fab387;
+      --teal:      #94e2d5;
+      --font-mono: "SFMono-Regular", "Consolas", "Liberation Mono", monospace;
+      --font-sans: "Segoe UI", "Inter", "Helvetica Neue", sans-serif;
+      --radius:    8px;
+    }
+
+    html, body {
+      margin: 0; padding: 0;
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font-sans);
+      font-size: 15px;
+      line-height: 1.6;
+    }
+
+    a { color: var(--accent); }
+    a:hover { color: #c4b5fd; }
+
+    /* ------------------------------------------------------------------ */
+    /* Layout                                                               */
+    /* ------------------------------------------------------------------ */
+    .page { max-width: 860px; margin: 0 auto; padding: 2rem 1.5rem 4rem; }
+
+    /* ------------------------------------------------------------------ */
+    /* Header                                                               */
+    /* ------------------------------------------------------------------ */
+    .diary-header {
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 2rem;
+      padding-bottom: 1.5rem;
+      text-align: center;
+    }
+
+    .diary-header h1 {
+      font-size: 2rem;
+      font-weight: 700;
+      margin: 0 0 .4rem;
+      letter-spacing: .02em;
+    }
+
+    .diary-header .subtitle {
+      color: var(--muted);
+      font-size: .9rem;
+      margin: 0 0 1.2rem;
+    }
+
+    .run-stats {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: .8rem 2rem;
+      font-size: .88rem;
+    }
+
+    .run-stats .stat { display: flex; flex-direction: column; align-items: center; }
+    .run-stats .stat-value { font-size: 1.5rem; font-weight: 700; color: var(--accent); }
+    .run-stats .stat-label { color: var(--muted); font-size: .78rem; text-transform: uppercase; letter-spacing: .06em; }
+
+    /* ------------------------------------------------------------------ */
+    /* Issue cards                                                          */
+    /* ------------------------------------------------------------------ */
+    .cards { display: flex; flex-direction: column; gap: 1.5rem; }
+
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1.25rem 1.5rem;
+    }
+
+    .card-header {
+      display: flex;
+      align-items: flex-start;
+      gap: 1rem;
+      flex-wrap: wrap;
+      margin-bottom: .8rem;
+    }
+
+    .ghost-avatar {
+      font-size: 2rem;
+      line-height: 1;
+      flex-shrink: 0;
+    }
+
+    .card-title { flex: 1; min-width: 0; }
+    .card-title h2 {
+      font-size: 1rem;
+      font-weight: 600;
+      margin: 0 0 .2rem;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .card-title h2 a { color: var(--text); text-decoration: none; }
+    .card-title h2 a:hover { color: var(--accent); }
+
+    .card-meta {
+      font-size: .8rem;
+      color: var(--muted);
+      display: flex;
+      flex-wrap: wrap;
+      gap: .4rem .8rem;
+    }
+
+    /* Outcome badges */
+    .badge {
+      display: inline-block;
+      padding: .15rem .55rem;
+      border-radius: 20px;
+      font-size: .75rem;
+      font-weight: 600;
+      white-space: nowrap;
+      text-transform: uppercase;
+      letter-spacing: .05em;
+    }
+    .badge-pr_opened   { background: #1a3a1a; color: var(--green);  border: 1px solid #2a5a2a; }
+    .badge-test_failed { background: #3a2a0a; color: var(--yellow); border: 1px solid #5a420a; }
+    .badge-timeout     { background: #3a1a1a; color: var(--red);    border: 1px solid #5a2a2a; }
+    .badge-over_limit  { background: #3a1f0a; color: var(--orange); border: 1px solid #5a3010; }
+    .badge-skipped     { background: #1a1a2a; color: var(--blue);   border: 1px solid #2a2a4a; }
+    .badge-agent_error { background: #1a1a2a; color: var(--muted);  border: 1px solid var(--border); }
+
+    /* Note */
+    .card-note {
+      font-style: italic;
+      color: var(--muted);
+      font-size: .88rem;
+      border-left: 3px solid var(--border);
+      padding-left: .75rem;
+      margin: .75rem 0;
+    }
+
+    /* Diff stats */
+    .diff-stats {
+      display: flex;
+      gap: 1rem;
+      font-size: .8rem;
+      color: var(--muted);
+      flex-wrap: wrap;
+      margin: .4rem 0;
+    }
+    .diff-added   { color: var(--green); }
+    .diff-removed { color: var(--red); }
+
+    /* Collapsible code block */
+    details {
+      margin-top: .75rem;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      overflow: hidden;
+    }
+    details summary {
+      cursor: pointer;
+      padding: .4rem .75rem;
+      background: #1e1e30;
+      font-size: .8rem;
+      color: var(--muted);
+      user-select: none;
+    }
+    details summary:hover { color: var(--text); }
+    details pre {
+      margin: 0;
+      padding: .75rem 1rem;
+      font-family: var(--font-mono);
+      font-size: .78rem;
+      line-height: 1.5;
+      overflow-x: auto;
+      background: var(--bg);
+      color: var(--text);
+      white-space: pre-wrap;
+      word-break: break-all;
+    }
+
+    /* PR link */
+    .pr-link {
+      display: inline-block;
+      margin-top: .5rem;
+      font-size: .85rem;
+      background: #1a2a3a;
+      border: 1px solid #2a4a5a;
+      border-radius: 20px;
+      padding: .15rem .75rem;
+      color: var(--blue);
+      text-decoration: none;
+    }
+    .pr-link:hover { background: #223344; }
+
+    /* ------------------------------------------------------------------ */
+    /* Quiet night                                                          */
+    /* ------------------------------------------------------------------ */
+    .quiet-night {
+      text-align: center;
+      padding: 4rem 2rem;
+      color: var(--muted);
+    }
+    .quiet-night .big-ghost { font-size: 5rem; display: block; margin-bottom: 1rem; }
+    .quiet-night h2 { color: var(--text); margin: 0 0 .5rem; }
+
+    /* ------------------------------------------------------------------ */
+    /* Footer                                                               */
+    /* ------------------------------------------------------------------ */
+    .diary-footer {
+      margin-top: 3rem;
+      border-top: 1px solid var(--border);
+      padding-top: 1rem;
+      text-align: center;
+      font-size: .78rem;
+      color: var(--muted);
+    }
+  </style>
+</head>
+<body>
+<div class="page">
+
+  <!-- ================================================================== -->
+  <!-- Header                                                               -->
+  <!-- ================================================================== -->
+  <header class="diary-header">
+    <h1>👻 Ghost Diary</h1>
+    <p class="subtitle">{{ run_log.date }}{% if run_log.dry_run %} &mdash; <strong>dry run</strong>{% endif %}</p>
+
+    <div class="run-stats">
+      <div class="stat">
+        <span class="stat-value">{{ run_log.total_issues }}</span>
+        <span class="stat-label">Issues tackled</span>
+      </div>
+      <div class="stat">
+        <span class="stat-value">{{ run_log.total_prs }}</span>
+        <span class="stat-label">PRs opened</span>
+      </div>
+      <div class="stat">
+        <span class="stat-value">{{ run_log.start_time.strftime('%H:%M') }}</span>
+        <span class="stat-label">Started (UTC)</span>
+      </div>
+      <div class="stat">
+        <span class="stat-value">{{ run_log.end_time.strftime('%H:%M') }}</span>
+        <span class="stat-label">Finished (UTC)</span>
+      </div>
+      {% if run_log.repo != 'unknown' %}
+      <div class="stat">
+        <span class="stat-value" style="font-size:.95rem;">{{ run_log.repo }}</span>
+        <span class="stat-label">Repository</span>
+      </div>
+      {% endif %}
+    </div>
+  </header>
+
+  <!-- ================================================================== -->
+  <!-- Issue cards                                                          -->
+  <!-- ================================================================== -->
+  {% if run_log.events %}
+  <div class="cards">
+    {% for event in run_log.events %}
+    <div class="card">
+      <div class="card-header">
+        <div class="ghost-avatar">👻</div>
+        <div class="card-title">
+          <h2>#{{ event.issue_number }}: {{ event.issue_title }}</h2>
+          <div class="card-meta">
+            <span>🔮 {{ event.ghost_name }}</span>
+            <span>🌿 <code>{{ event.branch }}</code></span>
+            <span>⏱ {{ "%.0f"|format(event.duration_seconds) }}s</span>
+          </div>
+        </div>
+        <span class="badge badge-{{ event.outcome }}">{{ event.outcome | replace("_", " ") }}</span>
+      </div>
+
+      {% if event.note %}
+      <p class="card-note">"{{ event.note }}"</p>
+      {% endif %}
+
+      {% if event.pr_url %}
+      <a class="pr-link" href="{{ event.pr_url }}" target="_blank" rel="noopener">🔗 View Pull Request</a>
+      {% endif %}
+
+      {% if event.diff_stats %}
+      <div class="diff-stats">
+        <span>📂 {{ event.diff_stats.files_changed }} file{{ 's' if event.diff_stats.files_changed != 1 else '' }}</span>
+        <span class="diff-added">+{{ event.diff_stats.lines_added }}</span>
+        <span class="diff-removed">-{{ event.diff_stats.lines_removed }}</span>
+      </div>
+      {% endif %}
+
+      {% if event.test_output %}
+      <details>
+        <summary>🧪 Test output</summary>
+        <pre>{{ event.test_output }}</pre>
+      </details>
+      {% endif %}
+
+      {% if event.agent_output %}
+      <details>
+        <summary>🤖 Agent output</summary>
+        <pre>{{ event.agent_output }}</pre>
+      </details>
+      {% endif %}
+    </div>
+    {% endfor %}
+  </div>
+
+  {% else %}
+  <!-- ================================================================== -->
+  <!-- Quiet night                                                          -->
+  <!-- ================================================================== -->
+  <div class="quiet-night">
+    <span class="big-ghost">👻</span>
+    <h2>A quiet night</h2>
+    <p>No labeled issues were found, so the ghosts drifted back to sleep.</p>
+  </div>
+  {% endif %}
+
+  <footer class="diary-footer">
+    Generated by <strong>Night Shift</strong> &mdash; autonomous overnight GitHub issue agent
+  </footer>
+</div>
+</body>
+</html>
